@@ -14,10 +14,10 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go build -o main .
+RUN go mod tidy && go build -o main .
 
-# Expose port 9096
-EXPOSE 9096
+# Expose port 8080
+EXPOSE 8080
 
 # Run the application
 CMD ["./main"]
