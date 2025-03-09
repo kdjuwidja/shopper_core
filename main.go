@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"netherrealmstudio.com/aishoppercore/m/APIHandlers"
+	"netherrealmstudio.com/aishoppercore/m/util"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -14,34 +15,25 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Configure CORS from environment variables
-	config := cors.DefaultConfig()
-
-	// Parse comma-separated origins from environment
-	origins := strings.Split(os.Getenv("CORS_ALLOW_ORIGINS"), ",")
-	if len(origins) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: CORS_ALLOW_ORIGINS environment variable is required\n")
-		os.Exit(1)
+	// Initialize Kafka factory
+	if _, err := util.GetKafkaFactory(); err != nil {
+		fmt.Printf("Warning: Failed to initialize Kafka factory: %v\n", err)
 	}
-	config.AllowOrigins = origins
 
-	// Parse comma-separated methods from environment
-	methods := strings.Split(os.Getenv("CORS_ALLOW_METHODS"), ",")
-	if len(methods) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: CORS_ALLOW_METHODS environment variable is required\n")
-		os.Exit(1)
+	// CORS configuration
+	corsConfig := cors.DefaultConfig()
+	if origins := os.Getenv("CORS_ALLOW_ORIGINS"); origins != "" {
+		corsConfig.AllowOrigins = strings.Split(origins, ",")
+	} else {
+		corsConfig.AllowOrigins = []string{"http://localhost:5173"}
 	}
-	config.AllowMethods = methods
-
-	// Parse comma-separated headers from environment
-	headers := strings.Split(os.Getenv("CORS_ALLOW_HEADERS"), ",")
-	if len(headers) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: CORS_ALLOW_HEADERS environment variable is required\n")
-		os.Exit(1)
+	if methods := os.Getenv("CORS_ALLOW_METHODS"); methods != "" {
+		corsConfig.AllowMethods = strings.Split(methods, ",")
 	}
-	config.AllowHeaders = headers
-
-	r.Use(cors.New(config))
+	if headers := os.Getenv("CORS_ALLOW_HEADERS"); headers != "" {
+		corsConfig.AllowHeaders = strings.Split(headers, ",")
+	}
+	r.Use(cors.New(corsConfig))
 
 	r.GET("/ping", APIHandlers.Ping)
 	r.GET("/getLatLngByAddress", APIHandlers.GetLatLngByAddress)

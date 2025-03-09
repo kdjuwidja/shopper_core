@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"netherrealmstudio.com/aishoppercore/m/util"
 )
 
 type SearchRequest struct {
@@ -144,10 +146,49 @@ func Recommend(c *gin.Context) {
 			Address: place.FormattedAddress,
 		}
 	}
+
+	// Generate unique completion request ID
+	completionRequestId := uuid.New().String()
+
 	// Add the product list to the response
 	response := gin.H{
-		"products": request.Products,
-		"places":   simplifiedResults,
+		"completionRequestId": completionRequestId,
+		"products":            request.Products,
+		"places":              simplifiedResults,
+	}
+
+	// Convert response to JSON for Kafka
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		fmt.Printf("Failed to marshal response: %s\n", err)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Get Kafka factory and create a producer
+	factory, err := util.GetKafkaFactory()
+	if err != nil {
+		fmt.Printf("Failed to get Kafka factory: %v\n", err)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	kafkaProducer, err := factory.CreateKafkaProducer()
+	if err != nil {
+		fmt.Printf("Failed to create Kafka producer: %v\n", err)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+	defer kafkaProducer.Close()
+
+	// Send message to Kafka
+	if err := kafkaProducer.ProduceMessage("recommend", jsonResponse); err != nil {
+		fmt.Printf("Kafka error: %v\n", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Failed to process recommendation",
+			"data":  response,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
