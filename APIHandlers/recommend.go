@@ -14,6 +14,8 @@ import (
 	"netherrealmstudio.com/aishoppercore/m/util"
 )
 
+const kafkaTopic = "recommend"
+
 type SearchRequest struct {
 	Products  []string `json:"products" binding:"required"`
 	Latitude  float64  `json:"latitude" binding:"required"`
@@ -148,13 +150,15 @@ func Recommend(c *gin.Context) {
 	}
 
 	// Generate unique completion request ID
-	completionRequestId := uuid.New().String()
+	requestId := uuid.New().String()
 
 	// Add the product list to the response
 	response := gin.H{
-		"completionRequestId": completionRequestId,
-		"products":            request.Products,
-		"places":              simplifiedResults,
+		"requestId": requestId,
+		"content": gin.H{
+			"products": request.Products,
+			"places":   simplifiedResults,
+		},
 	}
 
 	// Convert response to JSON for Kafka
@@ -182,7 +186,7 @@ func Recommend(c *gin.Context) {
 	defer kafkaProducer.Close()
 
 	// Send message to Kafka
-	if err := kafkaProducer.ProduceMessage("recommend", jsonResponse); err != nil {
+	if err := kafkaProducer.ProduceMessage(kafkaTopic, jsonResponse); err != nil {
 		fmt.Printf("Kafka error: %v\n", err)
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"error": "Failed to process recommendation",
