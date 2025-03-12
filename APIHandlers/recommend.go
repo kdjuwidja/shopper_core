@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"netherrealmstudio.com/aishoppercore/m/util"
+	"github.com/kdjuwidja/kafkalib/kafka"
 )
 
 const kafkaTopic = "recommend"
@@ -170,14 +170,14 @@ func Recommend(c *gin.Context) {
 	}
 
 	// Get Kafka factory and create a producer
-	factory, err := util.GetKafkaFactory()
+	factory, err := kafka.GetKafkaFactory()
 	if err != nil {
 		fmt.Printf("Failed to get Kafka factory: %v\n", err)
 		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	kafkaProducer, err := factory.CreateKafkaProducer()
+	kafkaProducer, err := factory.CreateProducer()
 	if err != nil {
 		fmt.Printf("Failed to create Kafka producer: %v\n", err)
 		c.JSON(http.StatusOK, response)

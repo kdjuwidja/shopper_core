@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kdjuwidja/kafkalib/kafka"
 	"netherrealmstudio.com/aishoppercore/m/APIHandlers"
-	"netherrealmstudio.com/aishoppercore/m/util"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -16,7 +16,7 @@ func main() {
 	r := gin.Default()
 
 	// Initialize Kafka factory
-	if _, err := util.GetKafkaFactory(); err != nil {
+	if _, err := kafka.GetKafkaFactory(); err != nil {
 		fmt.Printf("Warning: Failed to initialize Kafka factory: %v\n", err)
 	}
 
