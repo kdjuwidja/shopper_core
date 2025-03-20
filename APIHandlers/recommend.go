@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/kdjuwidja/kafkalib/kafka"
 )
 
 const kafkaTopic = "recommend"
@@ -159,40 +158,6 @@ func Recommend(c *gin.Context) {
 			"products": request.Products,
 			"places":   simplifiedResults,
 		},
-	}
-
-	// Convert response to JSON for Kafka
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		fmt.Printf("Failed to marshal response: %s\n", err)
-		c.JSON(http.StatusOK, response)
-		return
-	}
-
-	// Get Kafka factory and create a producer
-	factory, err := kafka.GetKafkaFactory()
-	if err != nil {
-		fmt.Printf("Failed to get Kafka factory: %v\n", err)
-		c.JSON(http.StatusOK, response)
-		return
-	}
-
-	kafkaProducer, err := factory.CreateProducer()
-	if err != nil {
-		fmt.Printf("Failed to create Kafka producer: %v\n", err)
-		c.JSON(http.StatusOK, response)
-		return
-	}
-	defer kafkaProducer.Close()
-
-	// Send message to Kafka
-	if err := kafkaProducer.ProduceMessage(kafkaTopic, jsonResponse); err != nil {
-		fmt.Printf("Kafka error: %v\n", err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "Failed to process recommendation",
-			"data":  response,
-		})
-		return
 	}
 
 	c.JSON(http.StatusOK, response)
