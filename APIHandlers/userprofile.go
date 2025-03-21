@@ -20,7 +20,7 @@ func GetUserProfile(c *gin.Context) {
 	result := db.First(&user, "id = ?", userID)
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": result.Error.Error()})
 		return
 	}
 
