@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"netherrealmstudio.com/aishoppercore/m/APIHandlers"
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	"netherrealmstudio.com/aishoppercore/m/db"
 	"netherrealmstudio.com/aishoppercore/m/model"
 	"netherrealmstudio.com/aishoppercore/m/oauth"
@@ -68,10 +68,10 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 
-	r.GET("/ping", APIHandlers.Ping)
-	r.GET("/getLatLngByAddress", APIHandlers.GetLatLngByAddress)
-	r.POST("/recommend", APIHandlers.Recommend)
-	r.GET("/user", oauth.VerifyToken([]string{"profile"}, APIHandlers.GetUserProfile))
-	r.POST("/user", oauth.VerifyToken([]string{"profile"}, APIHandlers.CreateOrUpdateUserProfile))
+	r.GET("/ping", apiHandlers.Ping)
+	r.GET("/getLatLngByAddress", apiHandlers.GetLatLngByAddress)
+	r.POST("/recommend", apiHandlers.Recommend)
+	r.GET("/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.GetUserProfile))
+	r.POST("/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.CreateOrUpdateUserProfile))
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
