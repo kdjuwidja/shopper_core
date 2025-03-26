@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"netherrealmstudio.com/aishoppercore/m/APIHandlers"
 	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherrealmstudio.com/aishoppercore/m/model"
 	"netherrealmstudio.com/aishoppercore/m/oauth"
 
 	"github.com/gin-contrib/cors"
@@ -43,6 +45,12 @@ func main() {
 	}
 	defer db.Close()
 
+	fmt.Println("Migrating database...")
+	if err := db.GetDB().AutoMigrate(&model.User{}, &model.Shoplist{}, &model.ShopListMembers{}, &model.ShoplistItems{}); err != nil {
+		panic(err)
+	}
+	fmt.Println("Database migrated successfully")
+
 	r := gin.Default()
 
 	// CORS configuration
@@ -63,7 +71,7 @@ func main() {
 	r.GET("/ping", APIHandlers.Ping)
 	r.GET("/getLatLngByAddress", APIHandlers.GetLatLngByAddress)
 	r.POST("/recommend", APIHandlers.Recommend)
-	r.GET("/userprofile", oauth.VerifyToken([]string{"profile"}, APIHandlers.GetUserProfile))
-	r.POST("/userprofile", oauth.VerifyToken([]string{"profile"}, APIHandlers.CreateOrUpdateUserProfile))
+	r.GET("/user", oauth.VerifyToken([]string{"profile"}, APIHandlers.GetUserProfile))
+	r.POST("/user", oauth.VerifyToken([]string{"profile"}, APIHandlers.CreateOrUpdateUserProfile))
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
