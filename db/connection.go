@@ -3,8 +3,10 @@ package db
 import (
 	"fmt"
 	"sync"
+	"testing"
 
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -61,4 +63,22 @@ func Close() error {
 		return sqlDB.Close()
 	}
 	return nil
+}
+
+// InitializeTestDB sets up an in-memory SQLite database for testing
+func InitializeTestDB(t *testing.T) (*gorm.DB, error) {
+	testDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to test database: %v", err)
+	}
+
+	// Override the global db variable for testing
+	db = testDB
+
+	return testDB, nil
+}
+
+// CloseTestDB resets the database connection
+func CloseTestDB() {
+	db = nil
 }
