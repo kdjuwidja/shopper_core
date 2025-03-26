@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" || len(token) < 7 || token[:7] != "Bearer " {
-			c.JSON(401, gin.H{"error": "Invalid or missing bearer token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing bearer token"})
 			c.Abort()
 			return
 		}
@@ -22,10 +23,7 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 
 		secret := os.Getenv("JWT_SECRET")
 		if secret == "" {
-			secret = "my-secret-key"
-		}
-		if secret == "" {
-			c.JSON(500, gin.H{"error": "JWT secret not configured"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not configured"})
 			c.Abort()
 			return
 		}
@@ -39,14 +37,14 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 		})
 
 		if err != nil || !tokenObj.Valid {
-			c.JSON(401, gin.H{"error": "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
 		mapClaims, ok := tokenObj.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(401, gin.H{"error": "Invalid token claims"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 			c.Abort()
 			return
 		}
@@ -57,7 +55,7 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 		if userID, exists := mapClaims["sub"].(string); exists {
 			c.Set("userID", userID)
 		} else {
-			c.JSON(401, gin.H{"error": "Missing user ID in token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user ID in token"})
 			c.Abort()
 			return
 		}
