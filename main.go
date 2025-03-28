@@ -46,7 +46,7 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("Migrating database...")
-	if err := db.GetDB().AutoMigrate(&model.User{}, &model.Shoplist{}, &model.ShopListMembers{}, &model.ShoplistItems{}); err != nil {
+	if err := db.GetDB().AutoMigrate(&model.User{}, &model.Shoplist{}, &model.ShoplistMember{}, &model.ShoplistItem{}, &model.ShoplistShareCode{}); err != nil {
 		panic(err)
 	}
 	fmt.Println("Database migrated successfully")

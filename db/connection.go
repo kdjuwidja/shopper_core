@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"netherrealmstudio.com/aishoppercore/m/model"
 )
 
 type Config struct {
@@ -65,9 +65,10 @@ func Close() error {
 	return nil
 }
 
-// InitializeTestDB sets up an in-memory SQLite database for testing
+// InitializeTestDB sets up a connection to a local MySQL database for testing
 func InitializeTestDB(t *testing.T) (*gorm.DB, error) {
-	testDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	dsn := "ai_shopper_dev:password@tcp(localhost:4306)/test_db?parseTime=true"
+	testDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to test database: %v", err)
 	}
@@ -80,5 +81,15 @@ func InitializeTestDB(t *testing.T) (*gorm.DB, error) {
 
 // CloseTestDB resets the database connection
 func CloseTestDB() {
-	db = nil
+	if db != nil {
+		// Drop all tables
+		db.Migrator().DropTable(
+			&model.ShoplistItem{},
+			&model.ShoplistMember{},
+			&model.ShoplistShareCode{},
+			&model.Shoplist{},
+			&model.User{},
+		)
+		db = nil
+	}
 }

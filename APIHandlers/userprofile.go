@@ -54,11 +54,17 @@ func CreateOrUpdateUserProfile(c *gin.Context) {
 	userID := userIDInterface.(string)
 
 	var req struct {
+		Nickname   string `json:"nickname"`
 		PostalCode string `json:"postal_code"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if req.Nickname == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "nickname is required"})
 		return
 	}
 
@@ -77,16 +83,18 @@ func CreateOrUpdateUserProfile(c *gin.Context) {
 
 	user := model.User{
 		ID:         userID,
+		Nickname:   req.Nickname,
 		PostalCode: postalCode,
 	}
 
 	// upsert user profile
 	if err := db.Clauses(clause.OnConflict{
-		UpdateAll: true,
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"postal_code", "nickname"}),
 	}).Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, gin.H{})
 }
