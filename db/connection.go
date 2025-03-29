@@ -48,6 +48,22 @@ func Initialize(config *Config) error {
 	return err
 }
 
+func AutoMigrate() error {
+	err := db.AutoMigrate(
+		&model.ShoplistItem{},
+		&model.ShoplistMember{},
+		&model.ShoplistShareCode{},
+		&model.Shoplist{},
+		&model.User{},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetDB returns the database instance
 func GetDB() *gorm.DB {
 	return db

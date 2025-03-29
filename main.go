@@ -8,7 +8,6 @@ import (
 
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
 	"netherrealmstudio.com/aishoppercore/m/oauth"
 
 	"github.com/gin-contrib/cors"
@@ -46,9 +45,7 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("Migrating database...")
-	if err := db.GetDB().AutoMigrate(&model.User{}, &model.Shoplist{}, &model.ShoplistMember{}, &model.ShoplistItem{}, &model.ShoplistShareCode{}); err != nil {
-		panic(err)
-	}
+	db.AutoMigrate()
 	fmt.Println("Database migrated successfully")
 
 	r := gin.Default()
