@@ -673,7 +673,7 @@ func RevokeShopListShareCode(c *gin.Context) {
 
 // JoinShopList allows a user to join a shoplist using a share code
 // HTTP Method: POST
-// Route: /shoplist/:id/join
+// Route: /shoplist/join
 // Request Body:
 //
 //	{
@@ -691,7 +691,49 @@ func RevokeShopListShareCode(c *gin.Context) {
 //     "error": "Shoplist not found"
 //     }
 func JoinShopList(c *gin.Context) {
+	// Get user ID from context
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 
+	// Parse request body
+	var requestBody struct {
+		ShareCode string `json:"share_code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Share code is required"})
+		return
+	}
+
+	// Find the active share code
+	var shareCode model.ShoplistShareCode
+	err := db.GetDB().Where("code = ? AND expiry > ?", requestBody.ShareCode, time.Now()).First(&shareCode).Error
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid share code"})
+		return
+	}
+
+	// Check if user is already a member
+	var existingMember model.ShoplistMember
+	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shareCode.ShopListID, userID).First(&existingMember).Error
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	// Add user as member
+	newMember := model.ShoplistMember{
+		ShopListID: shareCode.ShopListID,
+		MemberID:   userID,
+	}
+	if err := db.GetDB().Create(&newMember).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join shoplist"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 // AddItemToShopList adds a new item to a shoplist

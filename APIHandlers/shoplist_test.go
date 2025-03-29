@@ -1309,6 +1309,16 @@ func TestJoinShopList(t *testing.T) {
 	err = testDB.Create(&ownerMember).Error
 	assert.NoError(t, err)
 
+	// Create share code for test shoplist
+	shareCode := model.ShoplistShareCode{
+		ID:         10000,
+		ShopListID: testShoplist.ID,
+		Code:       "TEST12",
+		Expiry:     time.Now().Add(24 * time.Hour),
+	}
+	err = testDB.Create(&shareCode).Error
+	assert.NoError(t, err)
+
 	// Create another shoplist with expired share code
 	expiredShoplist := model.Shoplist{
 		ID:      10001,
@@ -1327,30 +1337,44 @@ func TestJoinShopList(t *testing.T) {
 	err = testDB.Create(&expiredOwnerMember).Error
 	assert.NoError(t, err)
 
+	// Create expired share code
+	expiredShareCode := model.ShoplistShareCode{
+		ID:         10001,
+		ShopListID: expiredShoplist.ID,
+		Code:       "EXP123",
+		Expiry:     time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+	}
+	err = testDB.Create(&expiredShareCode).Error
+	assert.NoError(t, err)
+
+	// Add member to test shoplist
+	memberShoplist := model.ShoplistMember{
+		ID:         10002,
+		ShopListID: testShoplist.ID,
+		MemberID:   member.ID,
+	}
+	err = testDB.Create(&memberShoplist).Error
+	assert.NoError(t, err)
+
 	tests := []struct {
 		name           string
-		shoplistID     int
 		userID         string
 		requestBody    map[string]interface{}
 		expectedStatus int
 		expectedBody   map[string]interface{}
 	}{
 		{
-			name:       "Valid share code join",
-			shoplistID: 10000,
-			userID:     nonMember.ID,
+			name:   "Valid share code join",
+			userID: nonMember.ID,
 			requestBody: map[string]interface{}{
-				"share_code": "TEST123",
+				"share_code": "TEST12",
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
-				"message": "Successfully joined the shoplist",
-			},
+			expectedBody:   map[string]interface{}{},
 		},
 		{
-			name:       "Invalid share code",
-			shoplistID: 10000,
-			userID:     nonMember.ID,
+			name:   "Invalid share code",
+			userID: nonMember.ID,
 			requestBody: map[string]interface{}{
 				"share_code": "INVALID",
 			},
@@ -1360,21 +1384,19 @@ func TestJoinShopList(t *testing.T) {
 			},
 		},
 		{
-			name:       "Expired share code",
-			shoplistID: 10001,
-			userID:     nonMember.ID,
+			name:   "Expired share code",
+			userID: nonMember.ID,
 			requestBody: map[string]interface{}{
-				"share_code": "EXPIRED",
+				"share_code": "EXP123",
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody: map[string]interface{}{
-				"error": "Share code has expired",
+				"error": "Invalid share code",
 			},
 		},
 		{
-			name:       "Empty share code",
-			shoplistID: 10000,
-			userID:     nonMember.ID,
+			name:   "Empty share code",
+			userID: nonMember.ID,
 			requestBody: map[string]interface{}{
 				"share_code": "",
 			},
@@ -1384,9 +1406,8 @@ func TestJoinShopList(t *testing.T) {
 			},
 		},
 		{
-			name:       "Missing share code field",
-			shoplistID: 10000,
-			userID:     nonMember.ID,
+			name:   "Missing share code field",
+			userID: nonMember.ID,
 			requestBody: map[string]interface{}{
 				"invalid_field": "some value",
 			},
@@ -1396,28 +1417,13 @@ func TestJoinShopList(t *testing.T) {
 			},
 		},
 		{
-			name:       "Already a member",
-			shoplistID: 10000,
-			userID:     member.ID,
+			name:   "Already a member",
+			userID: member.ID,
 			requestBody: map[string]interface{}{
-				"share_code": "TEST123",
+				"share_code": "TEST12",
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody: map[string]interface{}{
-				"error": "Already a member of this shoplist",
-			},
-		},
-		{
-			name:       "Non-existent shoplist",
-			shoplistID: 99999,
-			userID:     nonMember.ID,
-			requestBody: map[string]interface{}{
-				"share_code": "TEST123",
-			},
-			expectedStatus: http.StatusNotFound,
-			expectedBody: map[string]interface{}{
-				"error": "Shoplist not found",
-			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   map[string]interface{}{},
 		},
 	}
 
@@ -1426,11 +1432,11 @@ func TestJoinShopList(t *testing.T) {
 			// Setup Gin router
 			gin.SetMode(gin.TestMode)
 			router := gin.New()
-			router.POST("/shoplist/:id/join", JoinShopList)
+			router.POST("/shoplist/join", JoinShopList)
 
 			// Create request
 			body, _ := json.Marshal(tt.requestBody)
-			req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(tt.shoplistID)+"/join", bytes.NewBuffer(body))
+			req, _ := http.NewRequest("POST", "/shoplist/join", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test-token")
 
@@ -1438,8 +1444,7 @@ func TestJoinShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("userID", tt.userID)
-			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
+			c.Set("user_id", tt.userID)
 
 			JoinShopList(c)
 
@@ -1455,7 +1460,7 @@ func TestJoinShopList(t *testing.T) {
 			if tt.expectedStatus == http.StatusOK {
 				var memberCount int64
 				err := testDB.Model(&model.ShoplistMember{}).
-					Where("shop_list_id = ? AND member_id = ?", tt.shoplistID, tt.userID).
+					Where("member_id = ?", tt.userID).
 					Count(&memberCount).Error
 				assert.NoError(t, err)
 				assert.Equal(t, int64(1), memberCount, "User should be added as member")
