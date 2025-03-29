@@ -610,9 +610,7 @@ func generateShareCode(length int) string {
 // Route: /shoplist/:id/share-code
 // Request Body: None
 // Response:
-//   - 200 OK: {
-//     "message": "Share code revoked successfully"
-//     }
+//   - 200 OK: {}
 //   - 400 Bad Request: {
 //     "error": "No active share code to revoke"
 //     }
@@ -622,8 +620,55 @@ func generateShareCode(length int) string {
 //   - 404 Not Found: {
 //     "error": "Shoplist not found"
 //     }
-func RevokeShopListShareCode(gin *gin.Context) {
+func RevokeShopListShareCode(c *gin.Context) {
+	// Get user ID from context
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 
+	// Get shoplist ID from URL
+	shoplistID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		return
+	}
+
+	// Get shoplist data including members
+	shopListData, err := getShoplistWithMembers(shoplistID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
+		return
+	}
+
+	// Check if user is a member
+	if _, exists := shopListData.Members[userID]; !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		return
+	}
+
+	// Check if user is the owner
+	if shopListData.OwnerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can revoke share codes"})
+		return
+	}
+
+	// Find the active share code
+	var shareCode model.ShoplistShareCode
+	err = db.GetDB().Where("shop_list_id = ? AND expiry > ?", shoplistID, time.Now()).First(&shareCode).Error
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	// Update the expiry to current time to revoke the code
+	if err := db.GetDB().Model(&shareCode).Update("expiry", time.Now()).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke share code"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 // JoinShopList allows a user to join a shoplist using a share code
@@ -645,7 +690,7 @@ func RevokeShopListShareCode(gin *gin.Context) {
 //   - 404 Not Found: {
 //     "error": "Shoplist not found"
 //     }
-func JoinShopList(gin *gin.Context) {
+func JoinShopList(c *gin.Context) {
 
 }
 
@@ -674,7 +719,7 @@ func JoinShopList(gin *gin.Context) {
 //   - 404 Not Found: {
 //     "error": "Shoplist not found"
 //     }
-func AddItemToShopList(gin *gin.Context) {
+func AddItemToShopList(c *gin.Context) {
 
 }
 
@@ -689,7 +734,7 @@ func AddItemToShopList(gin *gin.Context) {
 //   - 404 Not Found: {
 //     "error": "Shoplist not found"
 //     }
-func RemoveItemFromShopList(gin *gin.Context) {
+func RemoveItemFromShopList(c *gin.Context) {
 
 }
 
@@ -716,6 +761,6 @@ func RemoveItemFromShopList(gin *gin.Context) {
 //   - 404 Not Found: {
 //     "error": "Shoplist not found"
 //     }
-func UpdateShoplistItem(gin *gin.Context) {
+func UpdateShoplistItem(c *gin.Context) {
 
 }

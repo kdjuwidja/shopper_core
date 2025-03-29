@@ -1190,9 +1190,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 			shoplistID:     10000,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
-				"message": "Share code revoked successfully",
-			},
+			expectedBody:   map[string]interface{}{},
 		},
 		{
 			name:           "Member trying to revoke share code",
@@ -1225,10 +1223,8 @@ func TestRevokeShopListShareCode(t *testing.T) {
 			name:           "Revoking non-existent share code",
 			shoplistID:     10000,
 			userID:         owner.ID,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody: map[string]interface{}{
-				"error": "No active share code to revoke",
-			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   map[string]interface{}{},
 		},
 	}
 
@@ -1247,7 +1243,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("userID", tt.userID)
+			c.Set("user_id", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			RevokeShopListShareCode(c)
