@@ -127,17 +127,17 @@ func TestGetAllShoplists(t *testing.T) {
 
 	// Create test shoplists
 	shoplist1 := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Shoplist 1",
 	}
 	shoplist2 := model.Shoplist{
-		ID:      10001,
+		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Shoplist 2",
 	}
 	shoplist3 := model.Shoplist{
-		ID:      10002,
+		ID:      3,
 		OwnerID: member.ID,
 		Name:    "Shoplist 3",
 	}
@@ -150,12 +150,12 @@ func TestGetAllShoplists(t *testing.T) {
 
 	// Add owner as member to their own shoplists
 	ownerMember1 := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: shoplist1.ID,
 		MemberID:   owner.ID,
 	}
 	ownerMember2 := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
 	}
@@ -166,7 +166,7 @@ func TestGetAllShoplists(t *testing.T) {
 
 	// Add member to shoplist1
 	shoplistMember := model.ShoplistMember{
-		ID:         10002,
+		ID:         3,
 		ShopListID: shoplist1.ID,
 		MemberID:   member.ID,
 	}
@@ -175,7 +175,7 @@ func TestGetAllShoplists(t *testing.T) {
 
 	// Add member as member to their own shoplist
 	memberOwnShoplist := model.ShoplistMember{
-		ID:         10003,
+		ID:         4,
 		ShopListID: shoplist3.ID,
 		MemberID:   member.ID,
 	}
@@ -195,7 +195,7 @@ func TestGetAllShoplists(t *testing.T) {
 			expectedBody: map[string]interface{}{
 				"shoplists": []interface{}{
 					map[string]interface{}{
-						"id":   float64(10000),
+						"id":   float64(1),
 						"name": "Shoplist 1",
 						"owner": map[string]interface{}{
 							"id":       "owner-123",
@@ -203,7 +203,7 @@ func TestGetAllShoplists(t *testing.T) {
 						},
 					},
 					map[string]interface{}{
-						"id":   float64(10001),
+						"id":   float64(2),
 						"name": "Shoplist 2",
 						"owner": map[string]interface{}{
 							"id":       "owner-123",
@@ -220,7 +220,7 @@ func TestGetAllShoplists(t *testing.T) {
 			expectedBody: map[string]interface{}{
 				"shoplists": []interface{}{
 					map[string]interface{}{
-						"id":   float64(10000),
+						"id":   float64(1),
 						"name": "Shoplist 1",
 						"owner": map[string]interface{}{
 							"id":       "owner-123",
@@ -228,7 +228,7 @@ func TestGetAllShoplists(t *testing.T) {
 						},
 					},
 					map[string]interface{}{
-						"id":   float64(10002),
+						"id":   float64(3),
 						"name": "Shoplist 3",
 						"owner": map[string]interface{}{
 							"id":       "member-123",
@@ -316,7 +316,7 @@ func TestGetShoplist(t *testing.T) {
 
 	// Create test shoplist with items
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -325,7 +325,7 @@ func TestGetShoplist(t *testing.T) {
 
 	// Create empty shoplist
 	emptyShoplist := model.Shoplist{
-		ID:      10001,
+		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Empty Shoplist",
 	}
@@ -334,12 +334,12 @@ func TestGetShoplist(t *testing.T) {
 
 	// Add owner as member to shoplists
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
 	emptyOwnerMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: emptyShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -350,7 +350,7 @@ func TestGetShoplist(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10002,
+		ID:         3,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -359,7 +359,7 @@ func TestGetShoplist(t *testing.T) {
 
 	// Add test items to shoplist
 	item1 := model.ShoplistItem{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 1",
 		BrandName:  "Test Brand 1",
@@ -367,7 +367,7 @@ func TestGetShoplist(t *testing.T) {
 		IsBought:   false,
 	}
 	item2 := model.ShoplistItem{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 2",
 		BrandName:  "Test Brand 2",
@@ -388,11 +388,11 @@ func TestGetShoplist(t *testing.T) {
 	}{
 		{
 			name:           "Owner accessing shoplist with items",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"id":   float64(10000),
+				"id":   float64(1),
 				"name": "Test Shoplist",
 				"owner": map[string]interface{}{
 					"id":       "owner-123",
@@ -410,14 +410,14 @@ func TestGetShoplist(t *testing.T) {
 				},
 				"items": []interface{}{
 					map[string]interface{}{
-						"id":         float64(10000),
+						"id":         float64(1),
 						"item_name":  "Test Item 1",
 						"brand_name": "Test Brand 1",
 						"extra_info": "Test Info 1",
 						"is_bought":  false,
 					},
 					map[string]interface{}{
-						"id":         float64(10001),
+						"id":         float64(2),
 						"item_name":  "Test Item 2",
 						"brand_name": "Test Brand 2",
 						"extra_info": "Test Info 2",
@@ -428,11 +428,11 @@ func TestGetShoplist(t *testing.T) {
 		},
 		{
 			name:           "Owner accessing empty shoplist",
-			shoplistID:     10001,
+			shoplistID:     2,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"id":   float64(10001),
+				"id":   float64(2),
 				"name": "Empty Shoplist",
 				"owner": map[string]interface{}{
 					"id":       "owner-123",
@@ -449,11 +449,11 @@ func TestGetShoplist(t *testing.T) {
 		},
 		{
 			name:           "Member accessing shoplist with items",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         member.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"id":   float64(10000),
+				"id":   float64(1),
 				"name": "Test Shoplist",
 				"owner": map[string]interface{}{
 					"id":       "owner-123",
@@ -471,14 +471,14 @@ func TestGetShoplist(t *testing.T) {
 				},
 				"items": []interface{}{
 					map[string]interface{}{
-						"id":         float64(10000),
+						"id":         float64(1),
 						"item_name":  "Test Item 1",
 						"brand_name": "Test Brand 1",
 						"extra_info": "Test Info 1",
 						"is_bought":  false,
 					},
 					map[string]interface{}{
-						"id":         float64(10001),
+						"id":         float64(2),
 						"item_name":  "Test Item 2",
 						"brand_name": "Test Brand 2",
 						"extra_info": "Test Info 2",
@@ -489,7 +489,7 @@ func TestGetShoplist(t *testing.T) {
 		},
 		{
 			name:           "Non-member accessing shoplist",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         nonMember.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -580,7 +580,7 @@ func TestUpdateShoplist(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Original Name",
 	}
@@ -589,7 +589,7 @@ func TestUpdateShoplist(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -598,7 +598,7 @@ func TestUpdateShoplist(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -615,7 +615,7 @@ func TestUpdateShoplist(t *testing.T) {
 	}{
 		{
 			name:       "Owner updating shoplist name",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"name": "Updated Name",
@@ -625,7 +625,7 @@ func TestUpdateShoplist(t *testing.T) {
 		},
 		{
 			name:       "Member trying to update shoplist",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     member.ID,
 			requestBody: map[string]interface{}{
 				"name": "Updated Name",
@@ -637,7 +637,7 @@ func TestUpdateShoplist(t *testing.T) {
 		},
 		{
 			name:       "Non-member trying to update shoplist",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     nonMember.ID,
 			requestBody: map[string]interface{}{
 				"name": "Updated Name",
@@ -661,7 +661,7 @@ func TestUpdateShoplist(t *testing.T) {
 		},
 		{
 			name:       "Empty name update",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"name": "",
@@ -747,7 +747,7 @@ func TestLeaveShopList(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -756,7 +756,7 @@ func TestLeaveShopList(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -765,12 +765,12 @@ func TestLeaveShopList(t *testing.T) {
 
 	// Add members to shoplist
 	shoplistMember1 := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member1.ID,
 	}
 	shoplistMember2 := model.ShoplistMember{
-		ID:         10002,
+		ID:         3,
 		ShopListID: testShoplist.ID,
 		MemberID:   member2.ID,
 	}
@@ -781,7 +781,7 @@ func TestLeaveShopList(t *testing.T) {
 
 	// Create another shoplist with only one member
 	singleMemberShoplist := model.Shoplist{
-		ID:      10001,
+		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Single Member Shoplist",
 	}
@@ -790,7 +790,7 @@ func TestLeaveShopList(t *testing.T) {
 
 	// Add owner as member to single member shoplist
 	singleMemberOwner := model.ShoplistMember{
-		ID:         10003,
+		ID:         4,
 		ShopListID: singleMemberShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -806,7 +806,7 @@ func TestLeaveShopList(t *testing.T) {
 	}{
 		{
 			name:           "Member leaving shoplist",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         member1.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
@@ -815,7 +815,7 @@ func TestLeaveShopList(t *testing.T) {
 		},
 		{
 			name:           "Owner leaving shoplist",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
@@ -824,7 +824,7 @@ func TestLeaveShopList(t *testing.T) {
 		},
 		{
 			name:           "Last member leaving shoplist",
-			shoplistID:     10001,
+			shoplistID:     2,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
@@ -833,7 +833,7 @@ func TestLeaveShopList(t *testing.T) {
 		},
 		{
 			name:           "Non-member trying to leave shoplist",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         nonMember.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -956,7 +956,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -965,7 +965,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -974,7 +974,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -983,7 +983,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 
 	// Create initial share code
 	initialShareCode := model.ShoplistShareCode{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		Code:       "OLD123",
 		Expiry:     time.Now().Add(24 * time.Hour),
@@ -1000,7 +1000,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 	}{
 		{
 			name:           "Owner requesting share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
@@ -1010,7 +1010,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 		},
 		{
 			name:           "Owner replacing existing share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
@@ -1020,7 +1020,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 		},
 		{
 			name:           "Member requesting share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         member.ID,
 			expectedStatus: http.StatusForbidden,
 			expectedBody: map[string]interface{}{
@@ -1029,7 +1029,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 		},
 		{
 			name:           "Non-member requesting share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         nonMember.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -1153,7 +1153,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 
 	// Create test shoplist with share code
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -1162,7 +1162,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1171,7 +1171,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -1187,14 +1187,14 @@ func TestRevokeShopListShareCode(t *testing.T) {
 	}{
 		{
 			name:           "Owner revoking share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody:   map[string]interface{}{},
 		},
 		{
 			name:           "Member trying to revoke share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         member.ID,
 			expectedStatus: http.StatusForbidden,
 			expectedBody: map[string]interface{}{
@@ -1203,7 +1203,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 		},
 		{
 			name:           "Non-member trying to revoke share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         nonMember.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -1221,7 +1221,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 		},
 		{
 			name:           "Revoking non-existent share code",
-			shoplistID:     10000,
+			shoplistID:     1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
 			expectedBody:   map[string]interface{}{},
@@ -1293,7 +1293,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Create test shoplist with share code
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -1302,7 +1302,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1311,7 +1311,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Create share code for test shoplist
 	shareCode := model.ShoplistShareCode{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		Code:       "TEST12",
 		Expiry:     time.Now().Add(24 * time.Hour),
@@ -1321,7 +1321,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Create another shoplist with expired share code
 	expiredShoplist := model.Shoplist{
-		ID:      10001,
+		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Expired Shoplist",
 	}
@@ -1330,7 +1330,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Add owner as member to expired shoplist
 	expiredOwnerMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: expiredShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1339,7 +1339,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Create expired share code
 	expiredShareCode := model.ShoplistShareCode{
-		ID:         10001,
+		ID:         2,
 		ShopListID: expiredShoplist.ID,
 		Code:       "EXP123",
 		Expiry:     time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
@@ -1349,7 +1349,7 @@ func TestJoinShopList(t *testing.T) {
 
 	// Add member to test shoplist
 	memberShoplist := model.ShoplistMember{
-		ID:         10002,
+		ID:         3,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -1496,7 +1496,7 @@ func TestAddItemToShopList(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -1505,7 +1505,7 @@ func TestAddItemToShopList(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1514,7 +1514,7 @@ func TestAddItemToShopList(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -1531,7 +1531,7 @@ func TestAddItemToShopList(t *testing.T) {
 	}{
 		{
 			name:       "Owner adding item",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"item_name":  "Test Item",
@@ -1540,7 +1540,7 @@ func TestAddItemToShopList(t *testing.T) {
 			},
 			expectedStatus: http.StatusCreated,
 			expectedBody: map[string]interface{}{
-				"id":         float64(10000),
+				"id":         float64(1),
 				"item_name":  "Test Item",
 				"brand_name": "Test Brand",
 				"extra_info": "Test Info",
@@ -1549,7 +1549,7 @@ func TestAddItemToShopList(t *testing.T) {
 		},
 		{
 			name:       "Member adding item",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     member.ID,
 			requestBody: map[string]interface{}{
 				"item_name":  "Another Item",
@@ -1558,7 +1558,7 @@ func TestAddItemToShopList(t *testing.T) {
 			},
 			expectedStatus: http.StatusCreated,
 			expectedBody: map[string]interface{}{
-				"id":         float64(10001),
+				"id":         float64(2),
 				"item_name":  "Another Item",
 				"brand_name": "Another Brand",
 				"extra_info": "Another Info",
@@ -1567,7 +1567,7 @@ func TestAddItemToShopList(t *testing.T) {
 		},
 		{
 			name:       "Non-member trying to add item",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     nonMember.ID,
 			requestBody: map[string]interface{}{
 				"item_name":  "Test Item",
@@ -1595,7 +1595,7 @@ func TestAddItemToShopList(t *testing.T) {
 		},
 		{
 			name:       "Missing required fields",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"brand_name": "Test Brand",
@@ -1607,22 +1607,8 @@ func TestAddItemToShopList(t *testing.T) {
 			},
 		},
 		{
-			name:       "Invalid quantity",
-			shoplistID: 10000,
-			userID:     owner.ID,
-			requestBody: map[string]interface{}{
-				"item_name":  "Test Item",
-				"brand_name": "Test Brand",
-				"extra_info": "Test Info",
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody: map[string]interface{}{
-				"error": "Quantity must be greater than 0",
-			},
-		},
-		{
 			name:       "Empty name",
-			shoplistID: 10000,
+			shoplistID: 1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"item_name":  "",
@@ -1653,7 +1639,7 @@ func TestAddItemToShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("userID", tt.userID)
+			c.Set("user_id", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			AddItemToShopList(c)
@@ -1708,7 +1694,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -1717,7 +1703,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1726,7 +1712,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
@@ -1735,7 +1721,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 
 	// Add test items to shoplist
 	item1 := model.ShoplistItem{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 1",
 		BrandName:  "Test Brand 1",
@@ -1743,7 +1729,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 		IsBought:   false,
 	}
 	item2 := model.ShoplistItem{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 2",
 		BrandName:  "Test Brand 2",
@@ -1765,28 +1751,24 @@ func TestRemoveItemFromShopList(t *testing.T) {
 	}{
 		{
 			name:           "Owner removing item",
-			shoplistID:     10000,
-			itemID:         10000,
+			shoplistID:     1,
+			itemID:         1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
-				"message": "Item removed successfully",
-			},
+			expectedBody:   map[string]interface{}{},
 		},
 		{
 			name:           "Member removing item",
-			shoplistID:     10000,
-			itemID:         10001,
+			shoplistID:     1,
+			itemID:         2,
 			userID:         member.ID,
 			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
-				"message": "Item removed successfully",
-			},
+			expectedBody:   map[string]interface{}{},
 		},
 		{
 			name:           "Non-member trying to remove item",
-			shoplistID:     10000,
-			itemID:         10000,
+			shoplistID:     1,
+			itemID:         1,
 			userID:         nonMember.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -1796,7 +1778,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 		{
 			name:           "Removing item from non-existent shoplist",
 			shoplistID:     99999,
-			itemID:         10000,
+			itemID:         1,
 			userID:         owner.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -1805,7 +1787,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 		},
 		{
 			name:           "Removing non-existent item",
-			shoplistID:     10000,
+			shoplistID:     1,
 			itemID:         99999,
 			userID:         owner.ID,
 			expectedStatus: http.StatusNotFound,
@@ -1815,8 +1797,8 @@ func TestRemoveItemFromShopList(t *testing.T) {
 		},
 		{
 			name:           "Removing item from different shoplist",
-			shoplistID:     10000,
-			itemID:         10002, // Item from a different shoplist
+			shoplistID:     1,
+			itemID:         3, // Item from a different shoplist
 			userID:         owner.ID,
 			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
@@ -1840,7 +1822,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("userID", tt.userID)
+			c.Set("user_id", tt.userID)
 			c.Params = []gin.Param{
 				{Key: "id", Value: strconv.Itoa(tt.shoplistID)},
 				{Key: "itemId", Value: strconv.Itoa(tt.itemID)},
@@ -1894,7 +1876,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 
 	// Create test shoplist
 	testShoplist := model.Shoplist{
-		ID:      10000,
+		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
@@ -1903,7 +1885,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 
 	// Add owner as member to shoplist
 	ownerMember := model.ShoplistMember{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
@@ -1912,16 +1894,16 @@ func TestUpdateShoplistItem(t *testing.T) {
 
 	// Add member to shoplist
 	shoplistMember := model.ShoplistMember{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
 	err = testDB.Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
-	// Add test items to shoplist
+	// Create unique items for each test case
 	item1 := model.ShoplistItem{
-		ID:         10000,
+		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 1",
 		BrandName:  "Test Brand 1",
@@ -1929,16 +1911,38 @@ func TestUpdateShoplistItem(t *testing.T) {
 		IsBought:   false,
 	}
 	item2 := model.ShoplistItem{
-		ID:         10001,
+		ID:         2,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 2",
 		BrandName:  "Test Brand 2",
 		ExtraInfo:  "Test Info 2",
 		IsBought:   true,
 	}
+	item3 := model.ShoplistItem{
+		ID:         3,
+		ShopListID: testShoplist.ID,
+		ItemName:   "Test Item 3",
+		BrandName:  "Test Brand 3",
+		ExtraInfo:  "Test Info 3",
+		IsBought:   false,
+	}
+	item4 := model.ShoplistItem{
+		ID:         4,
+		ShopListID: testShoplist.ID,
+		ItemName:   "Test Item 4",
+		BrandName:  "Test Brand 4",
+		ExtraInfo:  "Test Info 4",
+		IsBought:   false,
+	}
+
+	// Create items in the database
 	err = testDB.Create(&item1).Error
 	assert.NoError(t, err)
 	err = testDB.Create(&item2).Error
+	assert.NoError(t, err)
+	err = testDB.Create(&item3).Error
+	assert.NoError(t, err)
+	err = testDB.Create(&item4).Error
 	assert.NoError(t, err)
 
 	tests := []struct {
@@ -1952,15 +1956,15 @@ func TestUpdateShoplistItem(t *testing.T) {
 	}{
 		{
 			name:       "Owner updating item bought status",
-			shoplistID: 10000,
-			itemID:     10000,
+			shoplistID: 1,
+			itemID:     1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"is_bought": true,
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"id":         float64(10000),
+				"id":         float64(1),
 				"item_name":  "Test Item 1",
 				"brand_name": "Test Brand 1",
 				"extra_info": "Test Info 1",
@@ -1969,15 +1973,15 @@ func TestUpdateShoplistItem(t *testing.T) {
 		},
 		{
 			name:       "Member updating item bought status",
-			shoplistID: 10000,
-			itemID:     10001,
+			shoplistID: 1,
+			itemID:     2,
 			userID:     member.ID,
 			requestBody: map[string]interface{}{
 				"is_bought": false,
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"id":         float64(10001),
+				"id":         float64(2),
 				"item_name":  "Test Item 2",
 				"brand_name": "Test Brand 2",
 				"extra_info": "Test Info 2",
@@ -1986,8 +1990,8 @@ func TestUpdateShoplistItem(t *testing.T) {
 		},
 		{
 			name:       "Non-member trying to update item",
-			shoplistID: 10000,
-			itemID:     10000,
+			shoplistID: 1,
+			itemID:     1,
 			userID:     nonMember.ID,
 			requestBody: map[string]interface{}{
 				"is_bought": true,
@@ -2000,7 +2004,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 		{
 			name:       "Updating item from non-existent shoplist",
 			shoplistID: 99999,
-			itemID:     10000,
+			itemID:     1,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"is_bought": true,
@@ -2012,7 +2016,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 		},
 		{
 			name:       "Updating non-existent item",
-			shoplistID: 10000,
+			shoplistID: 1,
 			itemID:     99999,
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
@@ -2025,8 +2029,8 @@ func TestUpdateShoplistItem(t *testing.T) {
 		},
 		{
 			name:       "Updating item from different shoplist",
-			shoplistID: 10000,
-			itemID:     10002, // Item from a different shoplist
+			shoplistID: 1,
+			itemID:     9, // Item from a different shoplist
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
 				"is_bought": true,
@@ -2037,30 +2041,101 @@ func TestUpdateShoplistItem(t *testing.T) {
 			},
 		},
 		{
-			name:       "Missing is_bought field",
-			shoplistID: 10000,
-			itemID:     10000,
+			name:       "Updating item name only",
+			shoplistID: 1,
+			itemID:     1, // Use item1
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
-				"invalid_field": "some value",
+				"item_name": "Updated Item Name",
 			},
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"error": "Is_bought field is required",
+				"id":         float64(1),
+				"item_name":  "Updated Item Name",
+				"brand_name": "Test Brand 1",
+				"extra_info": "Test Info 1",
+				"is_bought":  true,
 			},
 		},
 		{
-			name:       "Trying to update other fields",
-			shoplistID: 10000,
-			itemID:     10000,
+			name:       "Updating brand name only",
+			shoplistID: 1,
+			itemID:     2, // Use item2
 			userID:     owner.ID,
 			requestBody: map[string]interface{}{
-				"is_bought": true,
-				"item_name": "New Name",
+				"brand_name": "Updated Brand Name",
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"id":         float64(2),
+				"item_name":  "Test Item 2",
+				"brand_name": "Updated Brand Name",
+				"extra_info": "Test Info 2",
+				"is_bought":  false,
+			},
+		},
+		{
+			name:       "Updating extra info only",
+			shoplistID: 1,
+			itemID:     3, // Use item3
+			userID:     owner.ID,
+			requestBody: map[string]interface{}{
+				"extra_info": "Updated Extra Info",
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"id":         float64(3),
+				"item_name":  "Test Item 3",
+				"brand_name": "Test Brand 3",
+				"extra_info": "Updated Extra Info",
+				"is_bought":  false,
+			},
+		},
+		{
+			name:       "Updating multiple fields",
+			shoplistID: 1,
+			itemID:     4, // Use item4
+			userID:     owner.ID,
+			requestBody: map[string]interface{}{
+				"item_name":  "Updated Item Name",
+				"brand_name": "Updated Brand Name",
+				"extra_info": "Updated Extra Info",
+				"is_bought":  true,
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"id":         float64(4),
+				"item_name":  "Updated Item Name",
+				"brand_name": "Updated Brand Name",
+				"extra_info": "Updated Extra Info",
+				"is_bought":  true,
+			},
+		},
+		{
+			name:           "Empty request body",
+			shoplistID:     1,
+			itemID:         1,
+			userID:         owner.ID,
+			requestBody:    map[string]interface{}{},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: map[string]interface{}{
+				"error": "Request body cannot be empty",
+			},
+		},
+		{
+			name:       "Empty request body with null values",
+			shoplistID: 1,
+			itemID:     1,
+			userID:     owner.ID,
+			requestBody: map[string]interface{}{
+				"item_name":  nil,
+				"brand_name": nil,
+				"extra_info": nil,
+				"is_bought":  nil,
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody: map[string]interface{}{
-				"error": "Only is_bought field can be updated",
+				"error": "Request body cannot be empty",
 			},
 		},
 	}
@@ -2082,7 +2157,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("userID", tt.userID)
+			c.Set("user_id", tt.userID)
 			c.Params = []gin.Param{
 				{Key: "id", Value: strconv.Itoa(tt.shoplistID)},
 				{Key: "itemId", Value: strconv.Itoa(tt.itemID)},
@@ -2103,11 +2178,12 @@ func TestUpdateShoplistItem(t *testing.T) {
 				var item model.ShoplistItem
 				err := testDB.First(&item, tt.itemID).Error
 				assert.NoError(t, err)
-				assert.Equal(t, tt.requestBody["is_bought"], item.IsBought, "Item bought status should be updated")
-				// Verify other fields remain unchanged
-				assert.Equal(t, tt.expectedBody["item_name"], item.ItemName, "Item name should not be changed")
-				assert.Equal(t, tt.expectedBody["brand_name"], item.BrandName, "Brand name should not be changed")
-				assert.Equal(t, tt.expectedBody["extra_info"], item.ExtraInfo, "Extra info should not be changed")
+
+				// Verify all fields match expected values
+				assert.Equal(t, tt.expectedBody["item_name"], item.ItemName, "Item name should match expected value")
+				assert.Equal(t, tt.expectedBody["brand_name"], item.BrandName, "Brand name should match expected value")
+				assert.Equal(t, tt.expectedBody["extra_info"], item.ExtraInfo, "Extra info should match expected value")
+				assert.Equal(t, tt.expectedBody["is_bought"], item.IsBought, "Is bought status should match expected value")
 			}
 		})
 	}
