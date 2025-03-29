@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"netherrealmstudio.com/aishoppercore/m/db"
 	"netherrealmstudio.com/aishoppercore/m/model"
@@ -572,15 +573,18 @@ func RequestShopListShareCode(c *gin.Context) {
 	shareCode := generateShareCode(6)
 	expiresAt := time.Now().Add(24 * time.Hour) // Share code expires in 24 hours
 
-	// Create new share code record
+	// Create or update share code record
 	shareCodeRecord := model.ShoplistShareCode{
 		ShopListID: shoplistID,
 		Code:       shareCode,
 		Expiry:     expiresAt,
 	}
 
-	// Save to database
-	if err := db.GetDB().Create(&shareCodeRecord).Error; err != nil {
+	// Upsert the share code record
+	if err := db.GetDB().Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "shop_list_id"}},
+		UpdateAll: true,
+	}).Create(&shareCodeRecord).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate share code"})
 		return
 	}

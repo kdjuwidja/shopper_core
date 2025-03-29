@@ -981,6 +981,16 @@ func TestRequestShopListShareCode(t *testing.T) {
 	err = testDB.Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
+	// Create initial share code
+	initialShareCode := model.ShoplistShareCode{
+		ID:         10000,
+		ShopListID: testShoplist.ID,
+		Code:       "OLD123",
+		Expiry:     time.Now().Add(24 * time.Hour),
+	}
+	err = testDB.Create(&initialShareCode).Error
+	assert.NoError(t, err)
+
 	tests := []struct {
 		name           string
 		shoplistID     int
@@ -990,6 +1000,16 @@ func TestRequestShopListShareCode(t *testing.T) {
 	}{
 		{
 			name:           "Owner requesting share code",
+			shoplistID:     10000,
+			userID:         owner.ID,
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"share_code": "", // Will be verified for format
+				"expires_at": "", // Will be verified for format
+			},
+		},
+		{
+			name:           "Owner replacing existing share code",
 			shoplistID:     10000,
 			userID:         owner.ID,
 			expectedStatus: http.StatusOK,
@@ -1062,7 +1082,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 				// Verify share code format (8 characters, alphanumeric)
 				shareCode, ok := response["share_code"].(string)
 				assert.True(t, ok, "Share code should be a string")
-				assert.Len(t, shareCode, 6, "Share code should be 8 characters long")
+				assert.Len(t, shareCode, 6, "Share code should be 6 characters long")
 				assert.Regexp(t, "^[A-Z0-9]+$", shareCode, "Share code should only contain uppercase letters and numbers")
 
 				// Verify expiration time format (RFC3339)
@@ -1076,6 +1096,22 @@ func TestRequestShopListShareCode(t *testing.T) {
 				// Allow for a small time difference (within 1 second) due to test execution time
 				assert.True(t, expiryTime.Sub(expectedExpiry) < time.Second && expectedExpiry.Sub(expiryTime) < time.Second,
 					"Expiration time should be exactly 24 hours from now")
+
+				// For the replacement test, verify the old code is gone and new code is saved
+				if tt.name == "Owner replacing existing share code" {
+					var shareCodeCount int64
+					err := testDB.Model(&model.ShoplistShareCode{}).
+						Where("shop_list_id = ?", tt.shoplistID).
+						Count(&shareCodeCount).Error
+					assert.NoError(t, err)
+					assert.Equal(t, int64(1), shareCodeCount, "Should have exactly one share code")
+
+					var shareCode model.ShoplistShareCode
+					err = testDB.Where("shop_list_id = ?", tt.shoplistID).First(&shareCode).Error
+					assert.NoError(t, err)
+					assert.Equal(t, response["share_code"], shareCode.Code, "Share code in database should match response")
+					assert.NotEqual(t, "OLD123", shareCode.Code, "New share code should be different from old one")
+				}
 			} else {
 				assert.Equal(t, tt.expectedBody, response)
 			}
