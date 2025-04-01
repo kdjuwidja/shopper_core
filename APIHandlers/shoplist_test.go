@@ -2119,7 +2119,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 			requestBody:    map[string]interface{}{},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody: map[string]interface{}{
-				"error": "Request body cannot be empty",
+				"error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought.",
 			},
 		},
 		{
@@ -2135,7 +2135,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody: map[string]interface{}{
-				"error": "Request body cannot be empty",
+				"error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought.",
 			},
 		},
 	}

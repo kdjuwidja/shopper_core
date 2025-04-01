@@ -15,8 +15,15 @@ import (
 	"netherrealmstudio.com/aishoppercore/m/model"
 )
 
+// getShoplistWithMembers retrieves shoplist data including owner and members
+type shoplistData struct {
+	ShopListID int
+	OwnerID    string
+	Members    map[string]struct{ MemberID string }
+}
+
 // helper function to get shoplist and members relationship and transform the data into struct for easier use
-func getShoplistWithMembers(shoplistID int) (*ShoplistData, error) {
+func getShoplistWithMembers(shoplistID int) (*shoplistData, error) {
 	rows, err := db.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.owner_id as owner_id, shoplist_members.member_id as member_id from shoplists 
 		LEFT JOIN shoplist_members ON shoplists.id = shoplist_members.shop_list_id 
 		WHERE shoplists.id = ?`, shoplistID).Rows()
@@ -33,7 +40,7 @@ func getShoplistWithMembers(shoplistID int) (*ShoplistData, error) {
 	}
 
 	// Transform the response data into the operable shoplist data
-	var shopListData ShoplistData
+	var shopListData shoplistData
 	for rows.Next() {
 		var queryShoplist QueryResult
 		err := rows.Scan(&queryShoplist.ShopListID, &queryShoplist.OwnerID, &queryShoplist.MemberID)
@@ -56,35 +63,35 @@ func getShoplistWithMembers(shoplistID int) (*ShoplistData, error) {
 }
 
 // CreateShoplist creates a new shoplist
-// HTTP Method: PUT
-// Route: /shoplist
-// Request Body:
-// {
-//     "name": string (required)
-// }
-// Response:
-// - 201 Created: {}
-// - 400 Bad Request: {
-//     "error": "Name is required"
-// }
-
-func CreateShoplist(gin *gin.Context) {
-	userID := gin.GetString("user_id")
+// @Summary Create a new shoplist
+// @Description Creates a new shoplist with the specified name. The authenticated user becomes the owner of the shoplist.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param request body struct{Name string} true "Shoplist details"
+// @Success 201 {object} map[string]interface{} "Successfully created shoplist"
+// @Failure 400 {object} map[string]string "Name is required"
+// @Failure 400 {object} map[string]string "Invalid JSON"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 500 {object} map[string]string "Failed to create shoplist"
+// @Router /shoplist [put]
+func CreateShoplist(c *gin.Context) {
+	userID := c.GetString("user_id")
 	if userID == "" {
-		gin.JSON(http.StatusUnauthorized, map[string]interface{}{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
 	var req struct {
 		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(gin.Request.Body).Decode(&req); err != nil {
-		gin.JSON(http.StatusBadRequest, map[string]interface{}{"error": "Invalid JSON"})
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
 	if req.Name == "" {
-		gin.JSON(http.StatusBadRequest, map[string]interface{}{"error": "Name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
 
@@ -96,34 +103,28 @@ func CreateShoplist(gin *gin.Context) {
 
 	// Save to database
 	if err := db.GetDB().Create(&shoplist).Error; err != nil {
-		gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to create shoplist"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create shoplist"})
 		return
 	}
 
-	gin.JSON(http.StatusCreated, map[string]interface{}{})
+	c.JSON(http.StatusCreated, gin.H{})
 }
 
 // GetAllShoplists retrieves all shoplists for the authenticated user
-// HTTP Method: GET
-// Route: /shoplist
-// Request Body: None
-// Response:
-//   - 200 OK: {
-//     "shoplists": [
-//     {
-//     "id": number,
-//     "name": string,
-//     "owner": {
-//     "id": string,
-//     "postal_code": string
-//     }
-//     }
-//     ]
-//     }
-func GetAllShoplists(gin *gin.Context) {
-	userID := gin.GetString("user_id")
+// @Summary Get all shoplists
+// @Description Retrieves all shoplists where the authenticated user is a member, including the owner's information.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Successfully retrieved shoplists"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 500 {object} map[string]string "Failed to fetch shoplists"
+// @Failure 500 {object} map[string]string "Failed to process shoplist data"
+// @Router /shoplist [get]
+func GetAllShoplists(c *gin.Context) {
+	userID := c.GetString("user_id")
 	if userID == "" {
-		gin.JSON(http.StatusUnauthorized, map[string]interface{}{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -135,7 +136,7 @@ func GetAllShoplists(gin *gin.Context) {
 	`, userID).Rows()
 
 	if err != nil {
-		gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to fetch shoplists"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shoplists"})
 		return
 	}
 	defer rows.Close()
@@ -155,59 +156,42 @@ func GetAllShoplists(gin *gin.Context) {
 		var r ShoplistResponse
 		err := rows.Scan(&r.ID, &r.Name, &r.Owner.Owner_id, &r.Owner.Nickname)
 		if err != nil {
-			gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to process shoplist data"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
 			return
 		}
 		response = append(response, r)
 	}
 
-	gin.JSON(http.StatusOK, map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"shoplists": response,
 	})
 }
 
 // GetShoplist retrieves a specific shoplist and its items
-// HTTP Method: GET
-// Route: /shoplist/:id
-// Request Body: None
-// Response:
-//   - 200 OK: {
-//     "id": number,
-//     "name": string,
-//     "owner": {
-//     "id": string,
-//     "postal_code": string
-//     },
-//     "members": [
-//     {
-//     "id": number,
-//     "nickname": string
-//     }
-//     ],
-//     "items": [
-//     {
-//     "id": number,
-//     "item_name": string,
-//     "brand_name": string,
-//     "extra_info": string,
-//     "is_bought": boolean
-//     }
-//     ]
-//     }
-//   - 404 Not Found: {
-//     "error": "Not found"
-//     }
-func GetShoplist(gin *gin.Context) {
+// @Summary Get a specific shoplist
+// @Description Retrieves a shoplist by its ID along with its items and members
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Success 200 {object} ResponseModel
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 404 {object} map[string]string "Not found"
+// @Failure 500 {object} map[string]string "Failed to fetch shoplist"
+// @Failure 500 {object} map[string]string "Failed to process shoplist data"
+// @Router /shoplist/{id} [get]
+func GetShoplist(c *gin.Context) {
 	// Get shoplist ID from URL parameters
-	shoplistID, err := strconv.Atoi(gin.Param("id"))
+	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		gin.JSON(http.StatusBadRequest, map[string]interface{}{"error": "Invalid shoplist ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
 		return
 	}
 
-	userID := gin.GetString("user_id")
+	userID := c.GetString("user_id")
 	if userID == "" {
-		gin.JSON(http.StatusUnauthorized, map[string]interface{}{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -215,7 +199,7 @@ func GetShoplist(gin *gin.Context) {
 	var member model.ShoplistMember
 	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
 	if err != nil {
-		gin.JSON(http.StatusNotFound, map[string]interface{}{"error": "Not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -225,7 +209,7 @@ func GetShoplist(gin *gin.Context) {
 		where shoplists.id = ?;`, shoplistID).Debug().Rows()
 
 	if err != nil {
-		gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to fetch shoplist"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shoplist"})
 		return
 	}
 	defer rows.Close()
@@ -249,7 +233,7 @@ func GetShoplist(gin *gin.Context) {
 		var r PremassageResp
 		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListMemberID, &r.ShopListMemberNickname)
 		if err != nil {
-			gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to process shoplist data"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
 			return
 		}
 
@@ -258,7 +242,7 @@ func GetShoplist(gin *gin.Context) {
 
 	// massage response data into expected format
 	if len(premassage_resps) == 0 {
-		gin.JSON(http.StatusInternalServerError, map[string]interface{}{"error": "Failed to process shoplist data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
 		return
 	}
 
@@ -362,34 +346,29 @@ func GetShoplist(gin *gin.Context) {
 		response.Items = append(response.Items, item)
 	}
 
-	gin.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
 // UpdateShoplist updates a shoplist's name
-// HTTP Method: POST
-// Route: /shoplist/:id
-// Request Body:
-//
-//	{
-//	    "name": string (required)
-//	}
-//
-// Response:
-//   - 200 OK: {}
-//   - 400 Bad Request: {
-//     "error": "Name is required"
-//     }
-//   - 403 Forbidden: {
-//     "error": "Only the owner can update this shoplist"
-//     }
-//   - 404 Not Found: {
-//     "error": "Not Found"
-//     }
+// @Summary Update a shoplist's name
+// @Description Updates the name of a specific shoplist by its ID
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Param name body string true "Name of the shoplist"
+// @Success 200 {object} gin.H
+// @Failure 400 {object} map[string]string "Name is required"
+// @Failure 403 {object} map[string]string "Only the owner can update this shoplist"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 500 {object} map[string]string "Failed to process shoplist data"
+// @Router /shoplist/{id} [post]
 func UpdateShoplist(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -437,18 +416,24 @@ func UpdateShoplist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// getShoplistWithMembers retrieves shoplist data including owner and members
-type ShoplistData struct {
-	ShopListID int
-	OwnerID    string
-	Members    map[string]struct{ MemberID string }
-}
-
+// LeaveShopList allows a user to leave a shoplist
+// @Summary Leave a shoplist
+// @Description Allows a user to leave a shoplist. If the user is the owner, ownership will be transferred to another member. If the user is the last member, the shoplist will be deleted.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Success 200 {object} map[string]interface{} "Successfully left the shoplist"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /shoplist/{id}/leave [POST]
 func LeaveShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -536,11 +521,25 @@ func LeaveShopList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully left the shoplist"})
 }
 
+// RequestShopListShareCode generates a share code for a shoplist
+// @Summary Generate share code
+// @Description Generates a unique share code for a shoplist that can be used by other users to join. Only the owner can generate share codes. The code expires in 24 hours.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Success 200 {object} map[string]interface{} "Successfully generated share code"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 403 {object} map[string]string "Only the owner can generate share codes"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /shoplist/{id}/share-code [POST]
 func RequestShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -606,25 +605,23 @@ func generateShareCode(length int) string {
 }
 
 // RevokeShopListShareCode revokes the active share code for a shoplist
-// HTTP Method: DELETE
-// Route: /shoplist/:id/share-code
-// Request Body: None
-// Response:
-//   - 200 OK: {}
-//   - 400 Bad Request: {
-//     "error": "No active share code to revoke"
-//     }
-//   - 403 Forbidden: {
-//     "error": "Only the owner can revoke share codes"
-//     }
-//   - 404 Not Found: {
-//     "error": "Shoplist not found"
-//     }
+// @Summary Revoke a share code
+// @Description Revokes the active share code for a specific shoplist. Only the owner can revoke share codes.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Success 200 {object} gin.H "Successfully revoked share code"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 403 {object} map[string]string "Only the owner can revoke share codes"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Router /shoplist/{id}/share-code/revoke [post]
 func RevokeShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -672,29 +669,23 @@ func RevokeShopListShareCode(c *gin.Context) {
 }
 
 // JoinShopList allows a user to join a shoplist using a share code
-// HTTP Method: POST
-// Route: /shoplist/join
-// Request Body:
-//
-//	{
-//	    "share_code": string (required)
-//	}
-//
-// Response:
-//   - 200 OK: {
-//     "message": "Successfully joined the shoplist"
-//     }
-//   - 400 Bad Request: {
-//     "error": "Share code is required"
-//     }
-//   - 404 Not Found: {
-//     "error": "Shoplist not found"
-//     }
+// @Summary Join a shoplist using a share code
+// @Description Allows a user to join a shoplist by providing a valid share code. The share code must be active and not expired.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param share_code body string true "Share code to join the shoplist"
+// @Success 200 {object} gin.H "Successfully joined the shoplist"
+// @Failure 400 {object} map[string]string "Share code is required"
+// @Failure 400 {object} map[string]string "Invalid share code"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Router /shoplist/join [post]
 func JoinShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -737,35 +728,29 @@ func JoinShopList(c *gin.Context) {
 }
 
 // AddItemToShopList adds a new item to a shoplist
-// HTTP Method: PUT
-// Route: /shoplist/:id/items
-// Request Body:
+// @Summary Add a new item to a shoplist
+// @Description Adds a new item to a specific shoplist. The user must be a member of the shoplist to add items.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
 //
-//	{
-//	    "item_name": string (required),
-//	    "brand_name": string,
-//	    "extra_info": string
-//	}
+//	@Param request body struct {
+//	    ItemName  string `json:"item_name" binding:"required"`
+//	    BrandName string `json:"brand_name"`
+//	    ExtraInfo string `json:"extra_info"`
+//	} true "Item details"
 //
-// Response:
-//   - 201 Created: {
-//     "id": number,
-//     "item_name": string,
-//     "brand_name": string,
-//     "extra_info": string,
-//     "is_bought": boolean
-//     }
-//   - 400 Bad Request: {
-//     "error": "Item name is required"
-//     }
-//   - 404 Not Found: {
-//     "error": "Shoplist not found"
-//     }
+// @Success 201 {object} map[string]interface{} "Successfully added item"
+// @Failure 400 {object} map[string]string "Item name is required"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Router /shoplist/{id}/items [put]
 func AddItemToShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -821,14 +806,20 @@ func AddItemToShopList(c *gin.Context) {
 }
 
 // RemoveItemFromShopList removes an item from a shoplist
-// HTTP Method: DELETE
-// Route: /shoplist/:id/items/:itemId
-// Request Body: None
-// Response:
-//   - 200 OK: {}
-//   - 404 Not Found: {
-//     "error": "Shoplist not found"
-//     }
+// @Summary Remove an item from a shoplist
+// @Description Removes a specific item from a shoplist. The user must be a member of the shoplist to remove items.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Param itemId path int true "Item ID"
+// @Success 200 {object} gin.H "Successfully removed item"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 400 {object} map[string]string "Invalid item ID"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Item not found"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Router /shoplist/{id}/items/{itemId} [delete]
 func RemoveItemFromShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
@@ -886,33 +877,29 @@ func RemoveItemFromShopList(c *gin.Context) {
 }
 
 // UpdateShoplistItem updates the bought status of an item
-// HTTP Method: POST
-// Route: /shoplist/:id/items/:itemId
-// Request Body:
+// @Summary Update an item in a shoplist
+// @Description Updates the details of a specific item in a shoplist. At least one of the fields (item_name, brand_name, extra_info, is_bought) must be present in the request body. The user must be a member of the shoplist to update items.
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Param itemId path int true "Item ID"
 //
-//	{
-//		"item_name": string,
-//		"brand_name": string,
-//		"extra_info": string,
-//	    "is_bought": boolean
-//	}
+//	@Param request body struct {
+//	    ItemName  *string `json:"item_name"`
+//	    BrandName *string `json:"brand_name"`
+//	    ExtraInfo *string `json:"extra_info"`
+//	    IsBought  *bool   `json:"is_bought"`
+//	} true "Item details"
 //
-// request body cannot be empty
-//
-// Response:
-//   - 200 OK: {
-//     "id": number,
-//     "item_name": string,
-//     "brand_name": string,
-//     "extra_info": string,
-//     "is_bought": boolean
-//     }
-//   - 400 Bad Request: {
-//     "error": "Is_bought field is required"
-//     }
-//   - 404 Not Found: {
-//     "error": "Shoplist not found"
-//     }
+// @Success 200 {object} map[string]interface{} "Successfully updated item"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 400 {object} map[string]string "Invalid item ID"
+// @Failure 400 {object} map[string]string "At least one field must be present in the request body"
+// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Item not found"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Router /shoplist/{id}/items/{itemId} [post]
 func UpdateShoplistItem(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("user_id")
@@ -949,7 +936,7 @@ func UpdateShoplistItem(c *gin.Context) {
 	// Check if request body is empty
 	if requestBody.ItemName == nil && requestBody.BrandName == nil &&
 		requestBody.ExtraInfo == nil && requestBody.IsBought == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body cannot be empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought."})
 		return
 	}
 

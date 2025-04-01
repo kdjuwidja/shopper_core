@@ -66,9 +66,19 @@ func main() {
 	r.Use(cors.New(corsConfig))
 
 	r.GET("/ping", apiHandlers.Ping)
-	r.GET("/getLatLngByAddress", apiHandlers.GetLatLngByAddress)
-	r.POST("/recommend", apiHandlers.Recommend)
-	r.GET("/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.GetUserProfile))
-	r.POST("/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.CreateOrUpdateUserProfile))
+	r.GET("/v1/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.GetUserProfile))
+	r.POST("/v1/user", oauth.VerifyToken([]string{"profile"}, apiHandlers.CreateOrUpdateUserProfile))
+	r.PUT("/v1/shoplist", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.CreateShoplist))
+	r.GET("/v1/shoplist", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.GetAllShoplists))
+	r.GET("/v1/shoplist/:id", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.GetShoplist))
+	r.POST("v1/shoplist/:id", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.UpdateShoplist))
+	r.POST("/v1/shoplist/:id/leave", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.LeaveShopList))
+	r.POST("/v1/shoplist/:id/share-code", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RequestShopListShareCode))
+	r.POST("/v1/shoplist/:id/share-code/revoke", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RevokeShopListShareCode))
+	r.POST("/v1/shoplist/join", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.JoinShopList))
+	r.PUT("/v1/shoplist/:id/item", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.AddItemToShopList))
+	r.DELETE("/v1/shoplist/:id/item/:itemId", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RemoveItemFromShopList))
+	r.POST("/v1/shoplist/:id/item/:itemId", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.UpdateShoplistItem))
+
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
