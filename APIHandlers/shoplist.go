@@ -76,7 +76,7 @@ func getShoplistWithMembers(shoplistID int) (*shoplistData, error) {
 // @Failure 500 {object} map[string]string "Failed to create shoplist"
 // @Router /shoplist [put]
 func CreateShoplist(c *gin.Context) {
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -122,7 +122,7 @@ func CreateShoplist(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to process shoplist data"
 // @Router /shoplist [get]
 func GetAllShoplists(c *gin.Context) {
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -189,7 +189,7 @@ func GetShoplist(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -366,7 +366,7 @@ func GetShoplist(c *gin.Context) {
 // @Router /shoplist/{id} [post]
 func UpdateShoplist(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -431,7 +431,7 @@ func UpdateShoplist(c *gin.Context) {
 // @Router /shoplist/{id}/leave [POST]
 func LeaveShopList(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -537,7 +537,7 @@ func LeaveShopList(c *gin.Context) {
 // @Router /shoplist/{id}/share-code [POST]
 func RequestShopListShareCode(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -619,7 +619,7 @@ func generateShareCode(length int) string {
 // @Router /shoplist/{id}/share-code/revoke [post]
 func RevokeShopListShareCode(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -683,7 +683,7 @@ func RevokeShopListShareCode(c *gin.Context) {
 // @Router /shoplist/join [post]
 func JoinShopList(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -748,7 +748,7 @@ func JoinShopList(c *gin.Context) {
 // @Router /shoplist/{id}/items [put]
 func AddItemToShopList(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -822,7 +822,7 @@ func AddItemToShopList(c *gin.Context) {
 // @Router /shoplist/{id}/items/{itemId} [delete]
 func RemoveItemFromShopList(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -902,7 +902,7 @@ func RemoveItemFromShopList(c *gin.Context) {
 // @Router /shoplist/{id}/items/{itemId} [post]
 func UpdateShoplistItem(c *gin.Context) {
 	// Get user ID from context
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return

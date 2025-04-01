@@ -62,7 +62,7 @@ func TestCreateShoplist(t *testing.T) {
 
 			// Add middleware to set user_id
 			router.Use(func(c *gin.Context) {
-				c.Set("user_id", testUser.ID)
+				c.Set("userID", testUser.ID)
 				c.Next()
 			})
 
@@ -263,7 +263,7 @@ func TestGetAllShoplists(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 
 			GetAllShoplists(c)
 
@@ -522,7 +522,7 @@ func TestGetShoplist(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			GetShoplist(c)
@@ -690,7 +690,7 @@ func TestUpdateShoplist(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			UpdateShoplist(c)
@@ -866,7 +866,7 @@ func TestLeaveShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			LeaveShopList(c)
@@ -1062,7 +1062,7 @@ func TestRequestShopListShareCode(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			RequestShopListShareCode(c)
@@ -1243,7 +1243,7 @@ func TestRevokeShopListShareCode(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			RevokeShopListShareCode(c)
@@ -1444,7 +1444,7 @@ func TestJoinShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 
 			JoinShopList(c)
 
@@ -1639,7 +1639,7 @@ func TestAddItemToShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(tt.shoplistID)}}
 
 			AddItemToShopList(c)
@@ -1822,7 +1822,7 @@ func TestRemoveItemFromShopList(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{
 				{Key: "id", Value: strconv.Itoa(tt.shoplistID)},
 				{Key: "itemId", Value: strconv.Itoa(tt.itemID)},
@@ -2157,7 +2157,7 @@ func TestUpdateShoplistItem(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = req
-			c.Set("user_id", tt.userID)
+			c.Set("userID", tt.userID)
 			c.Params = []gin.Param{
 				{Key: "id", Value: strconv.Itoa(tt.shoplistID)},
 				{Key: "itemId", Value: strconv.Itoa(tt.itemID)},
