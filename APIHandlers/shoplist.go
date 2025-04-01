@@ -2,7 +2,6 @@ package apiHandlers
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,6 +12,7 @@ import (
 
 	"netherrealmstudio.com/aishoppercore/m/db"
 	"netherrealmstudio.com/aishoppercore/m/model"
+	"netherrealmstudio.com/aishoppercore/m/util"
 )
 
 // getShoplistWithMembers retrieves shoplist data including owner and members
@@ -95,6 +95,9 @@ func CreateShoplist(c *gin.Context) {
 		return
 	}
 
+	// Start a new transaction
+	tx := db.GetDB().Begin()
+
 	// Create new shoplist
 	shoplist := model.Shoplist{
 		OwnerID: userID,
@@ -102,8 +105,26 @@ func CreateShoplist(c *gin.Context) {
 	}
 
 	// Save to database
-	if err := db.GetDB().Create(&shoplist).Error; err != nil {
+	if err := tx.Create(&shoplist).Error; err != nil {
+		tx.Rollback() // Rollback the transaction on error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create shoplist"})
+		return
+	}
+
+	// Add the owner as a member of the shoplist
+	member := model.ShoplistMember{
+		ShopListID: shoplist.ID,
+		MemberID:   userID,
+	}
+	if err := tx.Create(&member).Error; err != nil {
+		tx.Rollback() // Rollback the transaction on error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add owner as a member"})
+		return
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
 		return
 	}
 
@@ -203,10 +224,10 @@ func GetShoplist(c *gin.Context) {
 		return
 	}
 
-	rows, err := db.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, member_id, member_nickname FROM test_db.shoplists
+	rows, err := db.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, member_id, member_nickname FROM shoplists
 		LEFT JOIN shoplist_items on shoplist_items.shop_list_id = shoplists.id
 		LEFT JOIN (SELECT shop_list_id, member_id, nickname as member_nickname from shoplist_members left join users on shoplist_members.member_id = users.id) as tbl1 ON tbl1.shop_list_id = shoplists.id
-		where shoplists.id = ?;`, shoplistID).Debug().Rows()
+		where shoplists.id = ?;`, shoplistID).Rows()
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shoplist"})
@@ -462,12 +483,12 @@ func LeaveShopList(c *gin.Context) {
 		// Use transaction to batch remove member and delete shoplist
 		if err := db.GetDB().Transaction(func(tx *gorm.DB) error {
 			// First remove the member
-			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Delete(&model.ShoplistMember{}).Error; err != nil {
+			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
 				return err
 			}
 
 			// Then delete the shoplist
-			if err := tx.Delete(&model.Shoplist{}, shoplistID).Error; err != nil {
+			if err := tx.Unscoped().Delete(&model.Shoplist{}, shoplistID).Error; err != nil {
 				return err
 			}
 
@@ -499,7 +520,7 @@ func LeaveShopList(c *gin.Context) {
 			}
 
 			// Remove member
-			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Delete(&model.ShoplistMember{}).Error; err != nil {
+			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
 				return err
 			}
 
@@ -513,7 +534,7 @@ func LeaveShopList(c *gin.Context) {
 	}
 
 	// Remove member
-	if err := db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Delete(&model.ShoplistMember{}).Error; err != nil {
+	if err := db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove member"})
 		return
 	}
@@ -568,8 +589,16 @@ func RequestShopListShareCode(c *gin.Context) {
 		return
 	}
 
-	// Generate a unique share code (6 characters, alphanumeric)
-	shareCode := generateShareCode(6)
+	tx := db.GetDB().Begin()
+
+	// Generate a share code that is unique among all active share codes (6 characters, alphanumeric)
+	var shareCode string
+	for {
+		shareCode = util.GenerateShareCode(6)
+		if util.VerifyShareCodeFromDB(tx, shareCode) {
+			break
+		}
+	}
 	expiresAt := time.Now().Add(24 * time.Hour) // Share code expires in 24 hours
 
 	// Create or update share code record
@@ -580,11 +609,17 @@ func RequestShopListShareCode(c *gin.Context) {
 	}
 
 	// Upsert the share code record
-	if err := db.GetDB().Clauses(clause.OnConflict{
+	if err := tx.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "shop_list_id"}},
 		UpdateAll: true,
 	}).Create(&shareCodeRecord).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate share code"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
 
@@ -592,16 +627,6 @@ func RequestShopListShareCode(c *gin.Context) {
 		"share_code": shareCode,
 		"expires_at": expiresAt.Format(time.RFC3339),
 	})
-}
-
-// generateShareCode creates a random alphanumeric code of specified length
-func generateShareCode(length int) string {
-	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
 }
 
 // RevokeShopListShareCode revokes the active share code for a shoplist

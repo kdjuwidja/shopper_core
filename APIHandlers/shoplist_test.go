@@ -92,6 +92,12 @@ func TestCreateShoplist(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Test Shoplist", shoplist.Name)
 				assert.Equal(t, testUser.ID, shoplist.OwnerID)
+
+				// Check if the owner is also a member of the shoplist
+				var member model.ShoplistMember
+				err = testDB.Where("shop_list_id = ? AND member_id = ?", shoplist.ID, testUser.ID).First(&member).Error
+				assert.NoError(t, err)                        // Ensure no error occurred
+				assert.Equal(t, testUser.ID, member.MemberID) // Ensure the member ID matches the owner ID
 			}
 		})
 	}
