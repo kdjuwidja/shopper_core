@@ -71,7 +71,7 @@ func main() {
 	r.PUT("/v1/shoplist", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.CreateShoplist))
 	r.GET("/v1/shoplist", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.GetAllShoplists))
 	r.GET("/v1/shoplist/:id", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.GetShoplist))
-	r.POST("v1/shoplist/:id", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.UpdateShoplist))
+	r.POST("/v1/shoplist/:id", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.UpdateShoplist))
 	r.POST("/v1/shoplist/:id/leave", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.LeaveShopList))
 	r.POST("/v1/shoplist/:id/share-code", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RequestShopListShareCode))
 	r.POST("/v1/shoplist/:id/share-code/revoke", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RevokeShopListShareCode))
