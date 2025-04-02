@@ -892,7 +892,7 @@ func RemoveItemFromShopList(c *gin.Context) {
 	}
 
 	// Delete the item
-	err = db.GetDB().Delete(&item).Error
+	err = db.GetDB().Unscoped().Delete(&item).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove item"})
 		return
