@@ -381,7 +381,7 @@ func GetShoplist(c *gin.Context) {
 // @Success 200 {object} gin.H
 // @Failure 400 {object} map[string]string "Name is required"
 // @Failure 403 {object} map[string]string "Only the owner can update this shoplist"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 500 {object} map[string]string "Failed to process shoplist data"
 // @Router /shoplist/{id} [post]
@@ -418,7 +418,7 @@ func UpdateShoplist(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -447,7 +447,7 @@ func UpdateShoplist(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "Successfully left the shoplist"
 // @Failure 400 {object} map[string]string "Invalid shoplist ID"
 // @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /shoplist/{id}/leave [POST]
 func LeaveShopList(c *gin.Context) {
@@ -474,7 +474,7 @@ func LeaveShopList(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -553,7 +553,7 @@ func LeaveShopList(c *gin.Context) {
 // @Failure 400 {object} map[string]string "Invalid shoplist ID"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 403 {object} map[string]string "Only the owner can generate share codes"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /shoplist/{id}/share-code [POST]
 func RequestShopListShareCode(c *gin.Context) {
@@ -580,7 +580,7 @@ func RequestShopListShareCode(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -640,7 +640,7 @@ func RequestShopListShareCode(c *gin.Context) {
 // @Failure 400 {object} map[string]string "Invalid shoplist ID"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 403 {object} map[string]string "Only the owner can revoke share codes"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Router /shoplist/{id}/share-code/revoke [post]
 func RevokeShopListShareCode(c *gin.Context) {
 	// Get user ID from context
@@ -666,7 +666,7 @@ func RevokeShopListShareCode(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -703,7 +703,7 @@ func RevokeShopListShareCode(c *gin.Context) {
 // @Success 200 {object} gin.H "Successfully joined the shoplist"
 // @Failure 400 {object} map[string]string "Share code is required"
 // @Failure 400 {object} map[string]string "Invalid share code"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/join [post]
 func JoinShopList(c *gin.Context) {
@@ -768,7 +768,7 @@ func JoinShopList(c *gin.Context) {
 //
 // @Success 201 {object} map[string]interface{} "Successfully added item"
 // @Failure 400 {object} map[string]string "Item name is required"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items [put]
 func AddItemToShopList(c *gin.Context) {
@@ -801,7 +801,7 @@ func AddItemToShopList(c *gin.Context) {
 	var member model.ShoplistMember
 	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -841,7 +841,7 @@ func AddItemToShopList(c *gin.Context) {
 // @Success 200 {object} gin.H "Successfully removed item"
 // @Failure 400 {object} map[string]string "Invalid shoplist ID"
 // @Failure 400 {object} map[string]string "Invalid item ID"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 404 {object} map[string]string "Item not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items/{itemId} [delete]
@@ -875,7 +875,7 @@ func RemoveItemFromShopList(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 
@@ -921,7 +921,7 @@ func RemoveItemFromShopList(c *gin.Context) {
 // @Failure 400 {object} map[string]string "Invalid shoplist ID"
 // @Failure 400 {object} map[string]string "Invalid item ID"
 // @Failure 400 {object} map[string]string "At least one field must be present in the request body"
-// @Failure 404 {object} map[string]string "Shoplist not found"
+// @Failure 404 {object} map[string]string "Not found"
 // @Failure 404 {object} map[string]string "Item not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items/{itemId} [post]
@@ -974,7 +974,7 @@ func UpdateShoplistItem(c *gin.Context) {
 
 	// Check if user is a member
 	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Shoplist not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 

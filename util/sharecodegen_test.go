@@ -28,7 +28,7 @@ func TestShareCodeGen(t *testing.T) {
 	assert.True(t, matched, "Expected share code to contain only uppercase alphanumeric characters")
 }
 
-func TestVerifyShareCode(t *testing.T) {
+func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 	testDB := testutil.SetupTestDB(t)
 	t.Cleanup(testutil.TeardownTestDB)
 
@@ -41,78 +41,74 @@ func TestVerifyShareCode(t *testing.T) {
 	err := testDB.Create(&owner).Error
 	assert.NoError(t, err)
 
-	tests := []struct {
-		name           string
-		setupShareCode func() string
-		expectedResult bool
-	}{
-		{
-			name: "Share code exists and not expired",
-			setupShareCode: func() string {
-				// Create a new shoplist for this test
-				shoplist := model.Shoplist{
-					OwnerID: owner.ID,
-					Name:    "Test Shoplist 1",
-				}
-				err := testDB.Create(&shoplist).Error
-				assert.NoError(t, err)
-
-				code := GenerateShareCode(6)
-				shareCode := model.ShoplistShareCode{
-					ShopListID: shoplist.ID,
-					Code:       code,
-					Expiry:     time.Now().Add(24 * time.Hour),
-				}
-				err = testDB.Create(&shareCode).Error
-				assert.NoError(t, err)
-				return code
-			},
-			expectedResult: false,
-		},
-		{
-			name: "Share code exists and expired",
-			setupShareCode: func() string {
-				// Create a new shoplist for this test
-				shoplist := model.Shoplist{
-					OwnerID: owner.ID,
-					Name:    "Test Shoplist 2",
-				}
-				err := testDB.Create(&shoplist).Error
-				assert.NoError(t, err)
-
-				code := GenerateShareCode(6)
-				shareCode := model.ShoplistShareCode{
-					ShopListID: shoplist.ID,
-					Code:       code,
-					Expiry:     time.Now().Add(-1 * time.Hour),
-				}
-				err = testDB.Create(&shareCode).Error
-				assert.NoError(t, err)
-				return code
-			},
-			expectedResult: true,
-		},
-		{
-			name: "Share code with valid format but not in database",
-			setupShareCode: func() string {
-				return GenerateShareCode(6)
-			},
-			expectedResult: true,
-		},
-		{
-			name: "Share code does not exist at all",
-			setupShareCode: func() string {
-				return "NONEXISTENT"
-			},
-			expectedResult: true,
-		},
+	// Create a new shoplist for this test
+	shoplist := model.Shoplist{
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist 1",
 	}
+	err = testDB.Create(&shoplist).Error
+	assert.NoError(t, err)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			code := tt.setupShareCode()
-			result := VerifyShareCodeFromDB(testDB, code)
-			assert.Equal(t, tt.expectedResult, result)
-		})
+	code := GenerateShareCode(6)
+	shareCode := model.ShoplistShareCode{
+		ShopListID: shoplist.ID,
+		Code:       code,
+		Expiry:     time.Now().Add(24 * time.Hour),
 	}
+	err = testDB.Create(&shareCode).Error
+	assert.NoError(t, err)
+
+	result := VerifyShareCodeFromDB(testDB, code)
+	assert.False(t, result)
+}
+
+func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
+	testDB := testutil.SetupTestDB(t)
+	t.Cleanup(testutil.TeardownTestDB)
+
+	// Create test user
+	owner := model.User{
+		ID:         "owner-123",
+		Nickname:   "Test Owner",
+		PostalCode: "238801",
+	}
+	err := testDB.Create(&owner).Error
+	assert.NoError(t, err)
+
+	// Create a new shoplist for this test
+	shoplist := model.Shoplist{
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist 2",
+	}
+	err = testDB.Create(&shoplist).Error
+	assert.NoError(t, err)
+
+	code := GenerateShareCode(6)
+	shareCode := model.ShoplistShareCode{
+		ShopListID: shoplist.ID,
+		Code:       code,
+		Expiry:     time.Now().Add(-1 * time.Hour),
+	}
+	err = testDB.Create(&shareCode).Error
+	assert.NoError(t, err)
+
+	result := VerifyShareCodeFromDB(testDB, code)
+	assert.True(t, result)
+}
+
+func TestVerifyShareCodeValidFormatNotInDB(t *testing.T) {
+	testDB := testutil.SetupTestDB(t)
+	t.Cleanup(testutil.TeardownTestDB)
+
+	code := GenerateShareCode(6)
+	result := VerifyShareCodeFromDB(testDB, code)
+	assert.True(t, result)
+}
+
+func TestVerifyShareCodeNonExistent(t *testing.T) {
+	testDB := testutil.SetupTestDB(t)
+	t.Cleanup(testutil.TeardownTestDB)
+
+	result := VerifyShareCodeFromDB(testDB, "NONEXISTENT")
+	assert.True(t, result)
 }
