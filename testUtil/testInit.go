@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherrealmstudio.com/aishoppercore/m/logger"
 )
 
 // SetupTestDB initializes a test database and migrates the schema
@@ -25,4 +26,23 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 // TeardownTestDB cleans up the test database
 func TeardownTestDB() {
 	db.CloseTestDB()
+}
+
+func SetupTestLogger() {
+	err := logger.Init()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TeardownTestLogger() {
+	logger.Close()
+}
+
+func SetupTestEnv(t *testing.T) *gorm.DB {
+	SetupTestLogger()
+	testDB := SetupTestDB(t)
+	t.Cleanup(TeardownTestLogger)
+	t.Cleanup(TeardownTestDB)
+	return testDB
 }

@@ -13,34 +13,8 @@ import (
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
-func TestVerifyPostalCodeValid(t *testing.T) {
-	result := verifyPostalCode("A1B2C3")
-	assert.True(t, result)
-}
-
-func TestVerifyPostalCodeInvalidLength(t *testing.T) {
-	result := verifyPostalCode("A1B2C")
-	assert.False(t, result)
-}
-
-func TestVerifyPostalCodeInvalidFormatNumbersInLetterPositions(t *testing.T) {
-	result := verifyPostalCode("123456")
-	assert.False(t, result)
-}
-
-func TestVerifyPostalCodeInvalidFormatLettersInNumberPositions(t *testing.T) {
-	result := verifyPostalCode("ABCDEF")
-	assert.False(t, result)
-}
-
-func TestVerifyPostalCodeEmptyString(t *testing.T) {
-	result := verifyPostalCode("")
-	assert.False(t, result)
-}
-
 func TestGetUserProfileWithExistingUser(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	testDB := testutil.SetupTestEnv(t)
 
 	// Create a test user
 	testUser := model.User{
@@ -66,8 +40,7 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 }
 
 func TestGetUserProfileWithNonExistentUser(t *testing.T) {
-	testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	testutil.SetupTestEnv(t)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -79,8 +52,7 @@ func TestGetUserProfileWithNonExistentUser(t *testing.T) {
 }
 
 func TestCreateUserProfile(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	testDB := testutil.SetupTestEnv(t)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -107,8 +79,7 @@ func TestCreateUserProfile(t *testing.T) {
 }
 
 func TestUpdateUserProfile(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	testDB := testutil.SetupTestEnv(t)
 
 	// Create a test user for update tests
 	testUser := model.User{

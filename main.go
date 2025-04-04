@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherrealmstudio.com/aishoppercore/m/logger"
 	"netherrealmstudio.com/aishoppercore/m/oauth"
 
 	"github.com/gin-contrib/cors"
@@ -29,8 +29,14 @@ func getEnvString(key string, defaultValue string) string {
 }
 
 func main() {
+	// Initialize logger
+	err := logger.Init()
+	if err != nil {
+		panic(err)
+	}
+
 	// Initialize database connection
-	err := db.Initialize(&db.Config{
+	err = db.Initialize(&db.Config{
 		Host:         getEnvString("AI_SHOPPER_CORE_DB_HOST", "localhost"),
 		Port:         getEnvString("AI_SHOPPER_CORE_DB_PORT", "3306"),
 		DBName:       getEnvString("AI_SHOPPER_CORE_DB_NAME", "ai_shopper_core"),
@@ -40,13 +46,15 @@ func main() {
 		MaxIdleConns: getEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10),
 	})
 	if err != nil {
+		logger.Errorf("Failed to initialize database connection: %v", err)
 		panic(err)
 	}
 	defer db.Close()
 
-	fmt.Println("Migrating database...")
+	// Migrate database
+	logger.Info("Migrating database...")
 	db.AutoMigrate()
-	fmt.Println("Database migrated successfully")
+	logger.Info("Database migrated successfully")
 
 	r := gin.Default()
 
@@ -80,5 +88,7 @@ func main() {
 	r.DELETE("/v1/shoplist/:id/item/:itemId", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.RemoveItemFromShopList))
 	r.POST("/v1/shoplist/:id/item/:itemId", oauth.VerifyToken([]string{"shoplist"}, apiHandlers.UpdateShoplistItem))
 
+	logger.Info("Starting server on port 8080")
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+
 }

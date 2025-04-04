@@ -1,12 +1,12 @@
 package oauth
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"netherrealmstudio.com/aishoppercore/m/logger"
 )
 
 type VerifyFunc gin.HandlerFunc
@@ -24,7 +24,7 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 
 		secret := os.Getenv("JWT_SECRET")
 		if secret == "" {
-			fmt.Println("JWT secret not configured. Using default secret.")
+			logger.Warn("JWT secret not configured. Using default secret.")
 			secret = "my-secret-key"
 		}
 
