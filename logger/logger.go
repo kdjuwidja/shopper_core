@@ -66,6 +66,12 @@ func Debugf(format string, args ...interface{}) {
 	}).Debugf(format, args...)
 }
 
+func Trace(args ...interface{}) {
+	l.WithFields(logrus.Fields{
+		"service": "core",
+	}).Trace(args...)
+}
+
 func Warn(args ...interface{}) {
 	l.WithFields(logrus.Fields{
 		"service": "core",
@@ -100,4 +106,10 @@ func Panicf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
 		"service": "core",
 	}).Panicf(format, args...)
+}
+
+func Tracef(format string, args ...interface{}) {
+	l.WithFields(logrus.Fields{
+		"service": "core",
+	}).Tracef(format, args...)
 }
