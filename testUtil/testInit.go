@@ -29,7 +29,7 @@ func TeardownTestDB() {
 }
 
 func SetupTestLogger() {
-	err := logger.Init()
+	err := logger.Init("test")
 	if err != nil {
 		panic(err)
 	}

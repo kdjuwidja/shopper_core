@@ -30,7 +30,7 @@ func getEnvString(key string, defaultValue string) string {
 
 func main() {
 	// Initialize logger
-	err := logger.Init()
+	err := logger.Init("core")
 	if err != nil {
 		panic(err)
 	}

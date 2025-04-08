@@ -11,23 +11,23 @@ import (
 
 func TestInit(t *testing.T) {
 	// Test default level (info)
-	err := Init()
+	err := Init("test")
 	assert.NoError(t, err)
 
 	// Test with custom level
 	os.Setenv("LOG_LEVEL", "debug")
-	err = Init()
+	err = Init("test")
 	assert.NoError(t, err)
 
 	// Test with invalid level
 	os.Setenv("LOG_LEVEL", "invalid")
-	err = Init()
+	err = Init("test")
 	assert.Error(t, err)
 }
 
 func TestInfo(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -40,12 +40,12 @@ func TestInfo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test message", result["msg"])
 	assert.Equal(t, "info", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestInfof(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -58,12 +58,12 @@ func TestInfof(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test message", result["msg"])
 	assert.Equal(t, "info", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestError(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -76,12 +76,12 @@ func TestError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "error message", result["msg"])
 	assert.Equal(t, "error", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestErrorf(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -94,14 +94,13 @@ func TestErrorf(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "error message", result["msg"])
 	assert.Equal(t, "error", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestDebug(t *testing.T) {
 	// Setup
-	Init()
 	os.Setenv("LOG_LEVEL", "debug")
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -114,14 +113,13 @@ func TestDebug(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "debug message", result["msg"])
 	assert.Equal(t, "debug", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestDebugf(t *testing.T) {
 	// Setup
-	Init()
 	os.Setenv("LOG_LEVEL", "debug")
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -134,12 +132,12 @@ func TestDebugf(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "debug message", result["msg"])
 	assert.Equal(t, "debug", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestWarn(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -152,12 +150,12 @@ func TestWarn(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "warning message", result["msg"])
 	assert.Equal(t, "warning", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestWarnf(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -170,12 +168,12 @@ func TestWarnf(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "warning message", result["msg"])
 	assert.Equal(t, "warning", result["level"])
-	assert.Equal(t, "core", result["service"])
+	assert.Equal(t, "test", result["service"])
 }
 
 func TestFatal(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -187,7 +185,7 @@ func TestFatal(t *testing.T) {
 
 func TestFatalf(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -199,7 +197,7 @@ func TestFatalf(t *testing.T) {
 
 func TestPanic(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -211,7 +209,7 @@ func TestPanic(t *testing.T) {
 
 func TestPanicf(t *testing.T) {
 	// Setup
-	Init()
+	Init("test")
 	var buf bytes.Buffer
 	l.SetOutput(&buf)
 
@@ -219,4 +217,42 @@ func TestPanicf(t *testing.T) {
 	// Note: We can't actually test Panicf as it calls panic()
 	// Instead, we'll just verify the function exists and compiles
 	_ = Panicf
+}
+
+func TestTrace(t *testing.T) {
+	// Setup
+	os.Setenv("LOG_LEVEL", "trace")
+	Init("test")
+	var buf bytes.Buffer
+	l.SetOutput(&buf)
+
+	// Test
+	Trace("trace message")
+
+	// Verify
+	var result map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "trace message", result["msg"])
+	assert.Equal(t, "trace", result["level"])
+	assert.Equal(t, "test", result["service"])
+}
+
+func TestTracef(t *testing.T) {
+	// Setup
+	os.Setenv("LOG_LEVEL", "trace")
+	Init("test")
+	var buf bytes.Buffer
+	l.SetOutput(&buf)
+
+	// Test
+	Tracef("trace %s", "message")
+
+	// Verify
+	var result map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "trace message", result["msg"])
+	assert.Equal(t, "trace", result["level"])
+	assert.Equal(t, "test", result["service"])
 }

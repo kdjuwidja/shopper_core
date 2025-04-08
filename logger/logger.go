@@ -8,9 +8,13 @@ import (
 
 var l *logrus.Logger
 
-func Init() error {
+var serviceName string
+
+func Init(s string) error {
 	l = logrus.New()
 	l.SetFormatter(&logrus.JSONFormatter{})
+
+	serviceName = s
 
 	level := os.Getenv("LOG_LEVEL")
 	if level == "" {
@@ -32,84 +36,84 @@ func Close() {
 
 func Info(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Info(args...)
 }
 
 func Infof(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Infof(format, args...)
 }
 
 func Error(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Error(args...)
 }
 
 func Errorf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Errorf(format, args...)
 }
 
 func Debug(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Debug(args...)
 }
 
 func Debugf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Debugf(format, args...)
 }
 
 func Trace(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Trace(args...)
 }
 
 func Warn(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Warn(args...)
 }
 
 func Warnf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Warnf(format, args...)
 }
 
 func Fatal(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Fatal(args...)
 }
 
 func Fatalf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Fatalf(format, args...)
 }
 
 func Panic(args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Panic(args...)
 }
 
 func Panicf(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Panicf(format, args...)
 }
 
 func Tracef(format string, args ...interface{}) {
 	l.WithFields(logrus.Fields{
-		"service": "core",
+		"service": serviceName,
 	}).Tracef(format, args...)
 }
