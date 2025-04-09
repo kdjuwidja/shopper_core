@@ -30,7 +30,7 @@ func TestShareCodeGen(t *testing.T) {
 
 func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
 
 	// Create test user
 	owner := model.User{
@@ -38,7 +38,7 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 		Nickname:   "Test Owner",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testDB.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create a new shoplist for this test
@@ -46,7 +46,7 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 1",
 	}
-	err = testDB.Create(&shoplist).Error
+	err = testDB.GetDB().Create(&shoplist).Error
 	assert.NoError(t, err)
 
 	code := GenerateShareCode(6)
@@ -55,16 +55,16 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 		Code:       code,
 		Expiry:     time.Now().Add(24 * time.Hour),
 	}
-	err = testDB.Create(&shareCode).Error
+	err = testDB.GetDB().Create(&shareCode).Error
 	assert.NoError(t, err)
 
-	result := VerifyShareCodeFromDB(testDB, code)
+	result := VerifyShareCodeFromDB(testDB.GetDB(), code)
 	assert.False(t, result)
 }
 
 func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
 
 	// Create test user
 	owner := model.User{
@@ -72,7 +72,7 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 		Nickname:   "Test Owner",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testDB.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create a new shoplist for this test
@@ -80,7 +80,7 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
 	}
-	err = testDB.Create(&shoplist).Error
+	err = testDB.GetDB().Create(&shoplist).Error
 	assert.NoError(t, err)
 
 	code := GenerateShareCode(6)
@@ -89,26 +89,26 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 		Code:       code,
 		Expiry:     time.Now().Add(-1 * time.Hour),
 	}
-	err = testDB.Create(&shareCode).Error
+	err = testDB.GetDB().Create(&shareCode).Error
 	assert.NoError(t, err)
 
-	result := VerifyShareCodeFromDB(testDB, code)
+	result := VerifyShareCodeFromDB(testDB.GetDB(), code)
 	assert.True(t, result)
 }
 
 func TestVerifyShareCodeValidFormatNotInDB(t *testing.T) {
 	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
 
 	code := GenerateShareCode(6)
-	result := VerifyShareCodeFromDB(testDB, code)
+	result := VerifyShareCodeFromDB(testDB.GetDB(), code)
 	assert.True(t, result)
 }
 
 func TestVerifyShareCodeNonExistent(t *testing.T) {
 	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(testutil.TeardownTestDB)
+	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
 
-	result := VerifyShareCodeFromDB(testDB, "NONEXISTENT")
+	result := VerifyShareCodeFromDB(testDB.GetDB(), "NONEXISTENT")
 	assert.True(t, result)
 }

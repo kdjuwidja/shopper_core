@@ -5,31 +5,39 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm/clause"
+	bizuser "netherrealmstudio.com/aishoppercore/m/biz/user"
 	"netherrealmstudio.com/aishoppercore/m/db"
 	"netherrealmstudio.com/aishoppercore/m/logger"
 	"netherrealmstudio.com/aishoppercore/m/model"
 	"netherrealmstudio.com/aishoppercore/m/util"
 )
 
-func GetUserProfile(c *gin.Context) {
+// UserProfileHandler dependencies
+type UserProfileHandler struct {
+	userBiz bizuser.UserBiz
+}
+
+// Dependency Injection for UserProfileHandler
+func InitializeUserProfileHandler(dbPool db.MySQLConnectionPool) *UserProfileHandler {
+	return &UserProfileHandler{
+		userBiz: *bizuser.InitializeUserBiz(dbPool),
+	}
+}
+
+func (h *UserProfileHandler) GetUserProfile(c *gin.Context) {
 	userIDInterface, _ := c.Get("userID")
 	userID := userIDInterface.(string)
 
-	var user model.User
-
-	db := db.GetDB()
-	result := db.First(&user, "id = ?", userID)
-
-	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": result.Error.Error()})
+	user, err := h.userBiz.GetUserProfile(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, user)
 }
 
-func CreateOrUpdateUserProfile(c *gin.Context) {
+func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 	userIDInterface, _ := c.Get("userID")
 	userID := userIDInterface.(string)
 
@@ -65,19 +73,14 @@ func CreateOrUpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	db := db.GetDB()
-
 	user := model.User{
 		ID:         userID,
 		Nickname:   req.Nickname,
 		PostalCode: postalCode,
 	}
 
-	// upsert user profile
-	if err := db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"postal_code", "nickname"}),
-	}).Create(&user).Error; err != nil {
+	err := h.userBiz.CreateOrUpdateUserProfile(userID, &user)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

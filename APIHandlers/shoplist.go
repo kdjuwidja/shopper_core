@@ -7,55 +7,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
 )
 
-// getShoplistWithMembers retrieves shoplist data including owner and members
-type shoplistData struct {
-	ShopListID int
-	OwnerID    string
-	Members    map[string]struct{ MemberID string }
+type ShoplistHandler struct {
+	shoplistBiz *bizshoplist.ShoplistBiz
 }
 
-// helper function to get shoplist and members relationship and transform the data into struct for easier use
-func getShoplistWithMembers(shoplistID int) (*shoplistData, error) {
-	rows, err := db.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.owner_id as owner_id, shoplist_members.member_id as member_id from shoplists 
-		LEFT JOIN shoplist_members ON shoplists.id = shoplist_members.shop_list_id 
-		WHERE shoplists.id = ?`, shoplistID).Rows()
-
-	if err != nil {
-		return nil, err
+// Dependency Injection for ShoplistHandler
+func InitializeShoplistHandler(dbPool db.MySQLConnectionPool) *ShoplistHandler {
+	return &ShoplistHandler{
+		shoplistBiz: bizshoplist.InitializeShoplistBiz(dbPool),
 	}
-	defer rows.Close()
-
-	type QueryResult struct {
-		ShopListID int    `json:"shop_list_id" gorm:"column:shop_list_id"`
-		OwnerID    string `json:"owner_id" gorm:"column:owner_id"`
-		MemberID   string `json:"member_id" gorm:"column:member_id"`
-	}
-
-	// Transform the response data into the operable shoplist data
-	var shopListData shoplistData
-	for rows.Next() {
-		var queryShoplist QueryResult
-		err := rows.Scan(&queryShoplist.ShopListID, &queryShoplist.OwnerID, &queryShoplist.MemberID)
-		if err != nil {
-			return nil, err
-		}
-
-		if shopListData.ShopListID == 0 {
-			shopListData.ShopListID = queryShoplist.ShopListID
-			shopListData.OwnerID = queryShoplist.OwnerID
-			shopListData.Members = make(map[string]struct{ MemberID string })
-		}
-
-		if _, exists := shopListData.Members[queryShoplist.MemberID]; !exists {
-			shopListData.Members[queryShoplist.MemberID] = struct{ MemberID string }{MemberID: queryShoplist.MemberID}
-		}
-	}
-
-	return &shopListData, nil
 }
 
 // CreateShoplist creates a new shoplist
@@ -71,7 +35,7 @@ func getShoplistWithMembers(shoplistID int) (*shoplistData, error) {
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 500 {object} map[string]string "Failed to create shoplist"
 // @Router /shoplist [put]
-func CreateShoplist(c *gin.Context) {
+func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -91,36 +55,9 @@ func CreateShoplist(c *gin.Context) {
 		return
 	}
 
-	// Start a new transaction
-	tx := db.GetDB().Begin()
-
-	// Create new shoplist
-	shoplist := model.Shoplist{
-		OwnerID: userID,
-		Name:    req.Name,
-	}
-
-	// Save to database
-	if err := tx.Create(&shoplist).Error; err != nil {
-		tx.Rollback() // Rollback the transaction on error
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create shoplist"})
-		return
-	}
-
-	// Add the owner as a member of the shoplist
-	member := model.ShoplistMember{
-		ShopListID: shoplist.ID,
-		MemberID:   userID,
-	}
-	if err := tx.Create(&member).Error; err != nil {
-		tx.Rollback() // Rollback the transaction on error
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add owner as a member"})
-		return
-	}
-
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+	err := h.shoplistBiz.CreateShoplist(userID, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -138,25 +75,18 @@ func CreateShoplist(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to fetch shoplists"
 // @Failure 500 {object} map[string]string "Failed to process shoplist data"
 // @Router /shoplist [get]
-func GetAllShoplists(c *gin.Context) {
+func (h *ShoplistHandler) GetAllShoplists(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	// Get all shoplists where user is a member
-	rows, err := db.GetDB().Raw(`
-		select shoplists.id as id, shoplists.name as name, users.id as owner_id, users.nickname as owner_nickname from shoplists
-		left join users on shoplists.owner_id = users.id
-		where shoplists.id in (select shop_list_id from shoplist_members where member_id=?);
-	`, userID).Rows()
-
+	shoplistData, err := h.shoplistBiz.GetAllShoplists(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shoplists"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
 	// Transform the response to only include owner nickname
 	type ShoplistResponse struct {
@@ -169,14 +99,18 @@ func GetAllShoplists(c *gin.Context) {
 	}
 
 	response := make([]ShoplistResponse, 0)
-	for rows.Next() {
-		var r ShoplistResponse
-		err := rows.Scan(&r.ID, &r.Name, &r.Owner.Owner_id, &r.Owner.Nickname)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-			return
-		}
-		response = append(response, r)
+	for _, shoplist := range shoplistData {
+		response = append(response, ShoplistResponse{
+			ID:   shoplist.ID,
+			Name: shoplist.Name,
+			Owner: struct {
+				Owner_id string `json:"id" gorm:"column:owner_id"`
+				Nickname string `json:"nickname" gorm:"column:owner_nickname"`
+			}{
+				Owner_id: shoplist.OwnerID,
+				Nickname: shoplist.OwnerNickname,
+			},
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -198,7 +132,7 @@ func GetAllShoplists(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to fetch shoplist"
 // @Failure 500 {object} map[string]string "Failed to process shoplist data"
 // @Router /shoplist/{id} [get]
-func GetShoplist(c *gin.Context) {
+func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 	// Get shoplist ID from URL parameters
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -212,53 +146,18 @@ func GetShoplist(c *gin.Context) {
 		return
 	}
 
-	// Check if user is authorized to access this shoplist
-	var member model.ShoplistMember
-	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	rows, err := db.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, member_id, member_nickname FROM shoplists
-		LEFT JOIN shoplist_items on shoplist_items.shop_list_id = shoplists.id
-		LEFT JOIN (SELECT shop_list_id, member_id, nickname as member_nickname from shoplist_members left join users on shoplist_members.member_id = users.id) as tbl1 ON tbl1.shop_list_id = shoplists.id
-		where shoplists.id = ?;`, shoplistID).Rows()
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch shoplist"})
-		return
-	}
-	defer rows.Close()
-
-	// retrieve data from database response
-	type PremassageResp struct {
-		ID                     int     `json:"id" gorm:"column:shop_list_id"`
-		Name                   string  `json:"name" gorm:"column:shop_list_name"`
-		OwnerId                string  `json:"owner_id" gorm:"column:owner_id"`
-		ShopListItemID         *int    `json:"shop_list_item_id" gorm:"column:shop_list_item_id"`
-		ShopListItemName       *string `json:"item_name" gorm:"column:item_name"`
-		ShopListItemBrandName  *string `json:"brand_name" gorm:"column:brand_name"`
-		ShopListItemExtraInfo  *string `json:"extra_info" gorm:"column:extra_info"`
-		ShopListItemIsBought   *bool   `json:"is_bought" gorm:"column:is_bought"`
-		ShopListMemberID       string  `json:"member_id" gorm:"column:member_id"`
-		ShopListMemberNickname string  `json:"member_nickname" gorm:"column:member_nickname"`
-	}
-
-	var premassage_resps []PremassageResp
-	for rows.Next() {
-		var r PremassageResp
-		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListMemberID, &r.ShopListMemberNickname)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-			return
+	shoplistData, shoplistErr := h.shoplistBiz.GetShoplist(userID, shoplistID)
+	if shoplistErr != nil {
+		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Error()})
 		}
-
-		premassage_resps = append(premassage_resps, r)
+		return
 	}
 
 	// massage response data into expected format
-	if len(premassage_resps) == 0 {
+	if len(shoplistData) == 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
 		return
 	}
@@ -297,7 +196,7 @@ func GetShoplist(c *gin.Context) {
 		IsBought  bool   `json:"is_bought"`
 	})
 
-	for _, r := range premassage_resps {
+	for _, r := range shoplistData {
 		if response.ID == 0 {
 			response.ID = r.ID
 		}
@@ -381,7 +280,7 @@ func GetShoplist(c *gin.Context) {
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 500 {object} map[string]string "Failed to process shoplist data"
 // @Router /shoplist/{id} [post]
-func UpdateShoplist(c *gin.Context) {
+func (h *ShoplistHandler) UpdateShoplist(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -405,30 +304,18 @@ func UpdateShoplist(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
+	shoplistErr := h.shoplistBiz.UpdateShoplist(userID, shoplistID, requestBody.Name)
+	if shoplistErr != nil {
+		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		} else if shoplistErr.ErrCode == bizshoplist.ShoplistNotOwned {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can update this shoplist"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Error()})
+		}
 		return
 	}
 
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	if shopListData.OwnerID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can update this shoplist"})
-		return
-	}
-
-	// Update shoplist
-	if err := db.GetDB().Model(&model.Shoplist{}).Where("id = ?", shoplistID).Update("name", requestBody.Name).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update shoplist"})
-		return
-	}
-
-	// Return updated shoplist
+	// Return success
 	c.JSON(http.StatusOK, gin.H{})
 }

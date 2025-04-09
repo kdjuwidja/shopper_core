@@ -9,12 +9,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"netherrealmstudio.com/aishoppercore/m/db"
 	"netherrealmstudio.com/aishoppercore/m/model"
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
+func setUpTestEnv(t *testing.T) (*UserProfileHandler, *db.MySQLConnectionPool) {
+	testDBConn := testutil.SetupTestEnv(t)
+	userProfileHandler := InitializeUserProfileHandler(*testDBConn)
+	return userProfileHandler, testDBConn
+}
+
 func TestGetUserProfileWithExistingUser(t *testing.T) {
-	testDB := testutil.SetupTestEnv(t)
+	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user
 	testUser := model.User{
@@ -22,13 +29,13 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 		Nickname:   "Test User",
 		PostalCode: "A1B2C3",
 	}
-	testDB.Create(&testUser)
+	testDBConn.GetDB().Create(&testUser)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("userID", "test-user-id")
 
-	GetUserProfile(c)
+	userProfileHandler.GetUserProfile(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var response model.User
@@ -40,19 +47,19 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 }
 
 func TestGetUserProfileWithNonExistentUser(t *testing.T) {
-	testutil.SetupTestEnv(t)
+	userProfileHandler, _ := setUpTestEnv(t)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Set("userID", "non-existent-id")
 
-	GetUserProfile(c)
+	userProfileHandler.GetUserProfile(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestCreateUserProfile(t *testing.T) {
-	testDB := testutil.SetupTestEnv(t)
+	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -63,7 +70,7 @@ func TestCreateUserProfile(t *testing.T) {
 	c.Request = httptest.NewRequest("POST", "/user", strings.NewReader(reqBody))
 	c.Request.Header.Set("Content-Type", "application/json")
 
-	CreateOrUpdateUserProfile(c)
+	userProfileHandler.CreateOrUpdateUserProfile(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -72,14 +79,14 @@ func TestCreateUserProfile(t *testing.T) {
 
 	// Verify user was saved in database
 	var savedUser model.User
-	err := testDB.First(&savedUser, "id = ?", "new-user-id").Error
+	err := testDBConn.GetDB().First(&savedUser, "id = ?", "new-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, "A1B2C3", savedUser.PostalCode)
 	assert.Equal(t, "Test User", savedUser.Nickname)
 }
 
 func TestUpdateUserProfile(t *testing.T) {
-	testDB := testutil.SetupTestEnv(t)
+	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user for update tests
 	testUser := model.User{
@@ -87,7 +94,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		Nickname:   "Original Name",
 		PostalCode: "A1B2C3",
 	}
-	testDB.Create(&testUser)
+	testDBConn.GetDB().Create(&testUser)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -98,7 +105,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	c.Request = httptest.NewRequest("POST", "/user", strings.NewReader(reqBody))
 	c.Request.Header.Set("Content-Type", "application/json")
 
-	CreateOrUpdateUserProfile(c)
+	userProfileHandler.CreateOrUpdateUserProfile(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -107,7 +114,7 @@ func TestUpdateUserProfile(t *testing.T) {
 
 	// Verify user was updated in database
 	var savedUser model.User
-	err := testDB.First(&savedUser, "id = ?", "test-user-id").Error
+	err := testDBConn.GetDB().First(&savedUser, "id = ?", "test-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, strings.ToUpper("B2C3D4"), savedUser.PostalCode)
 	assert.Equal(t, "Updated Name", savedUser.Nickname)

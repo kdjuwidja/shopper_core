@@ -10,19 +10,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"netherrealmstudio.com/aishoppercore/m/model"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
 func TestAddItemToShopListOwner(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -31,7 +29,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -40,13 +38,13 @@ func TestAddItemToShopListOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -66,7 +64,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -84,7 +82,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 
 	// Verify database
 	var item model.ShoplistItem
-	err = testDB.First(&item, response["id"]).Error
+	err = testConn.GetDB().First(&item, response["id"]).Error
 	assert.NoError(t, err)
 	assert.Equal(t, requestBody["item_name"], item.ItemName)
 	assert.Equal(t, requestBody["brand_name"], item.BrandName)
@@ -94,8 +92,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 }
 
 func TestAddItemToShopListMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -106,9 +103,9 @@ func TestAddItemToShopListMember(t *testing.T) {
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member).Error
+	err = testConn.GetDB().Create(&member).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -117,7 +114,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add member to shoplist
@@ -126,13 +123,13 @@ func TestAddItemToShopListMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
-	err = testDB.Create(&shoplistMember).Error
+	err = testConn.GetDB().Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -152,7 +149,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 	c.Set("userID", member.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -170,7 +167,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 
 	// Verify database
 	var item model.ShoplistItem
-	err = testDB.First(&item, response["id"]).Error
+	err = testConn.GetDB().First(&item, response["id"]).Error
 	assert.NoError(t, err)
 	assert.Equal(t, requestBody["item_name"], item.ItemName)
 	assert.Equal(t, requestBody["brand_name"], item.BrandName)
@@ -180,8 +177,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 }
 
 func TestAddItemToShopListNonMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -192,9 +188,9 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&nonMember).Error
+	err = testConn.GetDB().Create(&nonMember).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -203,13 +199,13 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -229,7 +225,7 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 	c.Set("userID", nonMember.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -243,21 +239,20 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 }
 
 func TestAddItemToShopListNonExistentShoplist(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -277,7 +272,7 @@ func TestAddItemToShopListNonExistentShoplist(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "99999"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -291,15 +286,14 @@ func TestAddItemToShopListNonExistentShoplist(t *testing.T) {
 }
 
 func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -308,7 +302,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -317,13 +311,13 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -342,7 +336,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -356,15 +350,14 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 }
 
 func TestAddItemToShopListEmptyName(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -373,7 +366,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -382,13 +375,13 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items", AddItemToShopList)
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -408,7 +401,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	AddItemToShopList(c)
+	shoplistHandler.AddItemToShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -422,15 +415,14 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 }
 
 func TestRemoveItemFromShopListOwner(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -439,7 +431,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -448,7 +440,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -460,13 +452,13 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/1/items/1", nil)
@@ -482,7 +474,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -494,14 +486,13 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 
 	// Verify item is deleted from database
 	var deletedItem model.ShoplistItem
-	err = testDB.First(&deletedItem, 1).Error
+	err = testConn.GetDB().First(&deletedItem, 1).Error
 	assert.Error(t, err, "Item should be deleted from database")
 	assert.True(t, err.Error() == "record not found", "Error should be record not found")
 }
 
 func TestRemoveItemFromShopListMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -512,9 +503,9 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member).Error
+	err = testConn.GetDB().Create(&member).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -523,7 +514,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -532,7 +523,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add member to shoplist
@@ -541,7 +532,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
-	err = testDB.Create(&shoplistMember).Error
+	err = testConn.GetDB().Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -553,13 +544,13 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/1/items/1", nil)
@@ -575,7 +566,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -587,14 +578,13 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 
 	// Verify item is deleted from database
 	var deletedItem model.ShoplistItem
-	err = testDB.First(&deletedItem, 1).Error
+	err = testConn.GetDB().First(&deletedItem, 1).Error
 	assert.Error(t, err, "Item should be deleted from database")
 	assert.True(t, err.Error() == "record not found", "Error should be record not found")
 }
 
 func TestRemoveItemFromShopListNonMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -605,9 +595,9 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&nonMember).Error
+	err = testConn.GetDB().Create(&nonMember).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -616,7 +606,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -625,7 +615,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -637,13 +627,13 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/1/items/1", nil)
@@ -659,7 +649,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -668,31 +658,30 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"error": "Not found.",
 	}, response)
 
 	// Verify item still exists in database
 	var existingItem model.ShoplistItem
-	err = testDB.First(&existingItem, 1).Error
+	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err, "Item should still exist in database")
 }
 
 func TestRemoveItemFromShopListNonExistentShoplist(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/99999/items/1", nil)
@@ -708,7 +697,7 @@ func TestRemoveItemFromShopListNonExistentShoplist(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -717,20 +706,19 @@ func TestRemoveItemFromShopListNonExistentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"error": "Not found.",
 	}, response)
 }
 
 func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -739,7 +727,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -748,13 +736,13 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/1/items/99999", nil)
@@ -770,7 +758,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 		{Key: "itemId", Value: "99999"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -779,20 +767,19 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found",
+		"error": "Item not found.",
 	}, response)
 }
 
 func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplists
@@ -806,9 +793,9 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
 	}
-	err = testDB.Create(&shoplist1).Error
+	err = testConn.GetDB().Create(&shoplist1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&shoplist2).Error
+	err = testConn.GetDB().Create(&shoplist2).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to both shoplists
@@ -822,9 +809,9 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember1).Error
+	err = testConn.GetDB().Create(&ownerMember1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&ownerMember2).Error
+	err = testConn.GetDB().Create(&ownerMember2).Error
 	assert.NoError(t, err)
 
 	// Add test item to second shoplist
@@ -836,13 +823,13 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.DELETE("/shoplist/:id/items/:itemId", RemoveItemFromShopList)
+	router.DELETE("/shoplist/:id/items/:itemId", shoplistHandler.RemoveItemFromShopList)
 
 	// Create request
 	req, _ := http.NewRequest("DELETE", "/shoplist/1/items/1", nil)
@@ -858,7 +845,7 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	RemoveItemFromShopList(c)
+	shoplistHandler.RemoveItemFromShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -867,25 +854,24 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found",
+		"error": "Item not found.",
 	}, response)
 
 	// Verify item still exists in database
 	var existingItem model.ShoplistItem
-	err = testDB.First(&existingItem, 1).Error
+	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err, "Item should still exist in database")
 }
 
 func TestUpdateShoplistItemOwner(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -894,7 +880,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -903,7 +889,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -915,13 +901,13 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -942,7 +928,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -960,14 +946,13 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 
 	// Verify database
 	var updatedItem model.ShoplistItem
-	err = testDB.First(&updatedItem, 1).Error
+	err = testConn.GetDB().First(&updatedItem, 1).Error
 	assert.NoError(t, err)
 	assert.True(t, updatedItem.IsBought)
 }
 
 func TestUpdateShoplistItemMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -978,9 +963,9 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member).Error
+	err = testConn.GetDB().Create(&member).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -989,7 +974,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -998,7 +983,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add member to shoplist
@@ -1007,7 +992,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
-	err = testDB.Create(&shoplistMember).Error
+	err = testConn.GetDB().Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -1019,13 +1004,13 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   true,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -1046,7 +1031,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -1064,14 +1049,13 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 
 	// Verify database
 	var updatedItem model.ShoplistItem
-	err = testDB.First(&updatedItem, 1).Error
+	err = testConn.GetDB().First(&updatedItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, updatedItem.IsBought)
 }
 
 func TestUpdateShoplistItemNonMember(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -1082,9 +1066,9 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&nonMember).Error
+	err = testConn.GetDB().Create(&nonMember).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -1093,7 +1077,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -1102,7 +1086,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -1114,13 +1098,13 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -1141,7 +1125,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -1150,32 +1134,31 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"error": "Not found.",
 	}, response)
 
 	// Verify item is unchanged in database
 	var existingItem model.ShoplistItem
-	err = testDB.First(&existingItem, 1).Error
+	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)
 }
 
 func TestUpdateShoplistItemNonExistentShoplist(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -1196,7 +1179,7 @@ func TestUpdateShoplistItemNonExistentShoplist(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -1205,20 +1188,19 @@ func TestUpdateShoplistItemNonExistentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"error": "Not found.",
 	}, response)
 }
 
 func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -1227,7 +1209,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -1236,13 +1218,13 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -1263,7 +1245,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 		{Key: "itemId", Value: "99999"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -1272,20 +1254,19 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found",
+		"error": "Item not found.",
 	}, response)
 }
 
 func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplists
@@ -1299,9 +1280,9 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
 	}
-	err = testDB.Create(&shoplist1).Error
+	err = testConn.GetDB().Create(&shoplist1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&shoplist2).Error
+	err = testConn.GetDB().Create(&shoplist2).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to both shoplists
@@ -1315,9 +1296,9 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember1).Error
+	err = testConn.GetDB().Create(&ownerMember1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&ownerMember2).Error
+	err = testConn.GetDB().Create(&ownerMember2).Error
 	assert.NoError(t, err)
 
 	// Add test item to second shoplist
@@ -1329,13 +1310,13 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request
 	requestBody := map[string]interface{}{
@@ -1356,7 +1337,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -1365,26 +1346,25 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found",
+		"error": "Item not found.",
 	}, response)
 
 	// Verify item still exists in database
 	var existingItem model.ShoplistItem
-	err = testDB.First(&existingItem, 1).Error
+	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)
 }
 
 func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
-	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -1393,7 +1373,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -1402,7 +1382,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
@@ -1414,13 +1394,13 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 		ExtraInfo:  "Test Info",
 		IsBought:   false,
 	}
-	err = testDB.Create(&item).Error
+	err = testConn.GetDB().Create(&item).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/items/:itemId", UpdateShoplistItem)
+	router.POST("/shoplist/:id/items/:itemId", shoplistHandler.UpdateShoplistItem)
 
 	// Create request with empty JSON object
 	requestBody := map[string]interface{}{}
@@ -1439,7 +1419,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 		{Key: "itemId", Value: "1"},
 	}
 
-	UpdateShoplistItem(c)
+	shoplistHandler.UpdateShoplistItem(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -1453,7 +1433,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 
 	// Verify item is unchanged in database
 	var existingItem model.ShoplistItem
-	err = testDB.First(&existingItem, 1).Error
+	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)
 }

@@ -6,11 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
-	"netherrealmstudio.com/aishoppercore/m/util"
+
+	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 )
 
 // LeaveShopList allows a user to leave a shoplist
@@ -26,7 +23,7 @@ import (
 // @Failure 404 {object} map[string]string "Not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /shoplist/{id}/leave [POST]
-func LeaveShopList(c *gin.Context) {
+func (h *ShoplistHandler) LeaveShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -41,77 +38,16 @@ func LeaveShopList(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-		return
-	}
-
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	// If no other members, delete the shoplist
-	if len(shopListData.Members) == 1 {
-		// Use transaction to batch remove member and delete shoplist
-		if err := db.GetDB().Transaction(func(tx *gorm.DB) error {
-			// First remove the member
-			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
-				return err
-			}
-
-			// Then delete the shoplist
-			if err := tx.Unscoped().Delete(&model.Shoplist{}, shoplistID).Error; err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove member and delete shoplist"})
-			return
+	shoplistErr := h.shoplistBiz.LeaveShopList(userID, shoplistID)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Successfully left the shoplist"})
-		return
-	}
-
-	// If user is owner, transfer ownership to another member
-	if shopListData.OwnerID == userID {
-		// Find another member to transfer ownership to
-		var newOwnerID string
-		for memberID := range shopListData.Members {
-			if memberID != userID {
-				newOwnerID = memberID
-				break
-			}
-		}
-
-		// Use transaction to batch transfer ownership and remove member
-		if err := db.GetDB().Transaction(func(tx *gorm.DB) error {
-			// Transfer ownership
-			if err := tx.Model(&model.Shoplist{}).Where("id = ?", shoplistID).Update("owner_id", newOwnerID).Error; err != nil {
-				return err
-			}
-
-			// Remove member
-			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to transfer ownership and remove member"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Successfully left the shoplist"})
-		return
-	}
-
-	// Remove member
-	if err := db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&model.ShoplistMember{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove member"})
 		return
 	}
 
@@ -132,7 +68,7 @@ func LeaveShopList(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /shoplist/{id}/share-code [POST]
-func RequestShopListShareCode(c *gin.Context) {
+func (h *ShoplistHandler) RequestShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -147,61 +83,30 @@ func RequestShopListShareCode(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-		return
-	}
-
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	if shopListData.OwnerID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can generate share codes"})
-		return
-	}
-
-	tx := db.GetDB().Begin()
-
-	// Generate a share code that is unique among all active share codes (6 characters, alphanumeric)
-	var shareCode string
-	for {
-		shareCode = util.GenerateShareCode(6)
-		if util.VerifyShareCodeFromDB(tx, shareCode) {
-			break
+	shareCode, shoplistErr := h.shoplistBiz.RequestShopListShareCode(userID, shoplistID)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			return
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			return
+		case bizshoplist.ShoplistNotOwner:
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can generate share codes"})
+			return
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			return
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate share code"})
+			return
 		}
-	}
-	expiresAt := time.Now().Add(24 * time.Hour) // Share code expires in 24 hours
-
-	// Create or update share code record
-	shareCodeRecord := model.ShoplistShareCode{
-		ShopListID: shoplistID,
-		Code:       shareCode,
-		Expiry:     expiresAt,
-	}
-
-	// Upsert the share code record
-	if err := tx.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "shop_list_id"}},
-		UpdateAll: true,
-	}).Create(&shareCodeRecord).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate share code"})
-		return
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"share_code": shareCode,
-		"expires_at": expiresAt.Format(time.RFC3339),
+		"share_code": shareCode.Code,
+		"expires_at": shareCode.Expiry.Format(time.RFC3339),
 	})
 }
 
@@ -218,7 +123,7 @@ func RequestShopListShareCode(c *gin.Context) {
 // @Failure 403 {object} map[string]string "Only the owner can revoke share codes"
 // @Failure 404 {object} map[string]string "Not found"
 // @Router /shoplist/{id}/share-code/revoke [post]
-func RevokeShopListShareCode(c *gin.Context) {
+func (h *ShoplistHandler) RevokeShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -233,37 +138,18 @@ func RevokeShopListShareCode(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-		return
-	}
-
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	// Check if user is the owner
-	if shopListData.OwnerID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can revoke share codes"})
-		return
-	}
-
-	// Find the active share code
-	var shareCode model.ShoplistShareCode
-	err = db.GetDB().Where("shop_list_id = ? AND expiry > ?", shoplistID, time.Now()).First(&shareCode).Error
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{})
-		return
-	}
-
-	// Update the expiry to current time to revoke the code
-	if err := db.GetDB().Model(&shareCode).Update("expiry", time.Now()).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke share code"})
-		return
+	shoplistErr := h.shoplistBiz.RevokeShopListShareCode(userID, shoplistID)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistNotOwner:
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can revoke share codes"})
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{})
@@ -282,7 +168,7 @@ func RevokeShopListShareCode(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/join [post]
-func JoinShopList(c *gin.Context) {
+func (h *ShoplistHandler) JoinShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -299,30 +185,16 @@ func JoinShopList(c *gin.Context) {
 		return
 	}
 
-	// Find the active share code
-	var shareCode model.ShoplistShareCode
-	err := db.GetDB().Where("code = ? AND expiry > ?", requestBody.ShareCode, time.Now()).First(&shareCode).Error
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid share code"})
-		return
-	}
-
-	// Check if user is already a member
-	var existingMember model.ShoplistMember
-	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shareCode.ShopListID, userID).First(&existingMember).Error
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{})
-		return
-	}
-
-	// Add user as member
-	newMember := model.ShoplistMember{
-		ShopListID: shareCode.ShopListID,
-		MemberID:   userID,
-	}
-	if err := db.GetDB().Create(&newMember).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join shoplist"})
-		return
+	shoplistErr := h.shoplistBiz.JoinShopList(userID, requestBody.ShareCode)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{})

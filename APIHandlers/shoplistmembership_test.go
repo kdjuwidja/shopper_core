@@ -11,12 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"netherrealmstudio.com/aishoppercore/m/model"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
 func TestLeaveShopListMember(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
 	// Create test users
 	owner := model.User{
 		ID:         "owner-123",
@@ -30,11 +30,11 @@ func TestLeaveShopListMember(t *testing.T) {
 		ID:         "member2-123",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member1).Error
+	err = testConn.GetDB().Create(&member1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member2).Error
+	err = testConn.GetDB().Create(&member2).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -43,7 +43,7 @@ func TestLeaveShopListMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -52,7 +52,7 @@ func TestLeaveShopListMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add members to shoplist
@@ -66,15 +66,15 @@ func TestLeaveShopListMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member2.ID,
 	}
-	err = testDB.Create(&shoplistMember1).Error
+	err = testConn.GetDB().Create(&shoplistMember1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&shoplistMember2).Error
+	err = testConn.GetDB().Create(&shoplistMember2).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/leave", LeaveShopList)
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(testShoplist.ID)+"/leave", nil)
@@ -87,7 +87,7 @@ func TestLeaveShopListMember(t *testing.T) {
 	c.Set("userID", member1.ID)
 	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(testShoplist.ID)}}
 
-	LeaveShopList(c)
+	shoplistHandler.LeaveShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -101,7 +101,7 @@ func TestLeaveShopListMember(t *testing.T) {
 
 	// Verify member is removed from shoplist
 	var memberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ? AND member_id = ?", testShoplist.ID, member1.ID).
 		Count(&memberCount).Error
 	assert.NoError(t, err)
@@ -109,13 +109,13 @@ func TestLeaveShopListMember(t *testing.T) {
 
 	// Verify shoplist still exists
 	var shoplist model.Shoplist
-	err = testDB.First(&shoplist, testShoplist.ID).Error
+	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
 	assert.NoError(t, err, "Shoplist should still exist")
 	assert.Equal(t, testShoplist.ID, shoplist.ID, "Shoplist ID should match")
 
 	// Verify remaining member count
 	var remainingMemberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ?", testShoplist.ID).
 		Count(&remainingMemberCount).Error
 	assert.NoError(t, err)
@@ -124,7 +124,7 @@ func TestLeaveShopListMember(t *testing.T) {
 
 func TestLeaveShopListOwner(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -139,11 +139,11 @@ func TestLeaveShopListOwner(t *testing.T) {
 		ID:         "member2-123",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member1).Error
+	err = testConn.GetDB().Create(&member1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member2).Error
+	err = testConn.GetDB().Create(&member2).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -152,7 +152,7 @@ func TestLeaveShopListOwner(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -161,7 +161,7 @@ func TestLeaveShopListOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add members to shoplist
@@ -175,15 +175,15 @@ func TestLeaveShopListOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member2.ID,
 	}
-	err = testDB.Create(&shoplistMember1).Error
+	err = testConn.GetDB().Create(&shoplistMember1).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&shoplistMember2).Error
+	err = testConn.GetDB().Create(&shoplistMember2).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/leave", LeaveShopList)
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(testShoplist.ID)+"/leave", nil)
@@ -196,7 +196,7 @@ func TestLeaveShopListOwner(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(testShoplist.ID)}}
 
-	LeaveShopList(c)
+	shoplistHandler.LeaveShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -210,7 +210,7 @@ func TestLeaveShopListOwner(t *testing.T) {
 
 	// Verify member is removed from shoplist
 	var memberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ? AND member_id = ?", testShoplist.ID, owner.ID).
 		Count(&memberCount).Error
 	assert.NoError(t, err)
@@ -218,19 +218,19 @@ func TestLeaveShopListOwner(t *testing.T) {
 
 	// Verify ownership was transferred to another member
 	var shoplist model.Shoplist
-	err = testDB.First(&shoplist, testShoplist.ID).Error
+	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
 	assert.NoError(t, err)
 	assert.True(t, shoplist.OwnerID == member1.ID || shoplist.OwnerID == member2.ID,
 		"Ownership should be transferred to one of the remaining members")
 
 	// Verify shoplist still exists
-	err = testDB.First(&shoplist, testShoplist.ID).Error
+	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
 	assert.NoError(t, err, "Shoplist should still exist")
 	assert.Equal(t, testShoplist.ID, shoplist.ID, "Shoplist ID should match")
 
 	// Verify remaining member count
 	var remainingMemberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ?", testShoplist.ID).
 		Count(&remainingMemberCount).Error
 	assert.NoError(t, err)
@@ -239,14 +239,14 @@ func TestLeaveShopListOwner(t *testing.T) {
 
 func TestLeaveShopListLastMember(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist with only one member
@@ -255,7 +255,7 @@ func TestLeaveShopListLastMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Single Member Shoplist",
 	}
-	err = testDB.Create(&singleMemberShoplist).Error
+	err = testConn.GetDB().Create(&singleMemberShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to single member shoplist
@@ -264,13 +264,13 @@ func TestLeaveShopListLastMember(t *testing.T) {
 		ShopListID: singleMemberShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&singleMemberOwner).Error
+	err = testConn.GetDB().Create(&singleMemberOwner).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/leave", LeaveShopList)
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(singleMemberShoplist.ID)+"/leave", nil)
@@ -283,7 +283,7 @@ func TestLeaveShopListLastMember(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(singleMemberShoplist.ID)}}
 
-	LeaveShopList(c)
+	shoplistHandler.LeaveShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -297,7 +297,7 @@ func TestLeaveShopListLastMember(t *testing.T) {
 
 	// Verify member is removed from shoplist
 	var memberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ? AND member_id = ?", singleMemberShoplist.ID, owner.ID).
 		Count(&memberCount).Error
 	assert.NoError(t, err)
@@ -305,13 +305,13 @@ func TestLeaveShopListLastMember(t *testing.T) {
 
 	// Verify shoplist is deleted
 	var shoplist model.Shoplist
-	err = testDB.First(&shoplist, singleMemberShoplist.ID).Error
+	err = testConn.GetDB().First(&shoplist, singleMemberShoplist.ID).Error
 	assert.Error(t, err, "Shoplist should be deleted")
 	assert.True(t, err.Error() == "record not found", "Error should be record not found")
 
 	// Verify no members remain
 	var remainingMemberCount int64
-	err = testDB.Model(&model.ShoplistMember{}).
+	err = testConn.GetDB().Model(&model.ShoplistMember{}).
 		Where("shop_list_id = ?", singleMemberShoplist.ID).
 		Count(&remainingMemberCount).Error
 	assert.NoError(t, err)
@@ -320,7 +320,7 @@ func TestLeaveShopListLastMember(t *testing.T) {
 
 func TestLeaveShopListNonMember(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -331,9 +331,9 @@ func TestLeaveShopListNonMember(t *testing.T) {
 		ID:         "non-member-123",
 		PostalCode: "238804",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&nonMember).Error
+	err = testConn.GetDB().Create(&nonMember).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -342,7 +342,7 @@ func TestLeaveShopListNonMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -351,13 +351,13 @@ func TestLeaveShopListNonMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/leave", LeaveShopList)
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(testShoplist.ID)+"/leave", nil)
@@ -370,7 +370,7 @@ func TestLeaveShopListNonMember(t *testing.T) {
 	c.Set("userID", nonMember.ID)
 	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(testShoplist.ID)}}
 
-	LeaveShopList(c)
+	shoplistHandler.LeaveShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -385,20 +385,20 @@ func TestLeaveShopListNonMember(t *testing.T) {
 
 func TestLeaveShopListNonExistent(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	member1 := model.User{
 		ID:         "member1-123",
 		PostalCode: "238802",
 	}
-	err := testDB.Create(&member1).Error
+	err := testConn.GetDB().Create(&member1).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/leave", LeaveShopList)
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/99999/leave", nil)
@@ -411,7 +411,7 @@ func TestLeaveShopListNonExistent(t *testing.T) {
 	c.Set("userID", member1.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "99999"}}
 
-	LeaveShopList(c)
+	shoplistHandler.LeaveShopList(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -426,7 +426,7 @@ func TestLeaveShopListNonExistent(t *testing.T) {
 
 func TestRequestShopListShareCodeOwner(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
@@ -434,7 +434,7 @@ func TestRequestShopListShareCodeOwner(t *testing.T) {
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -443,7 +443,7 @@ func TestRequestShopListShareCodeOwner(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -452,13 +452,13 @@ func TestRequestShopListShareCodeOwner(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/share-code", RequestShopListShareCode)
+	router.POST("/shoplist/:id/share-code", shoplistHandler.RequestShopListShareCode)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/1/share-code", nil)
@@ -471,7 +471,7 @@ func TestRequestShopListShareCodeOwner(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	RequestShopListShareCode(c)
+	shoplistHandler.RequestShopListShareCode(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -504,7 +504,7 @@ func TestRequestShopListShareCodeOwner(t *testing.T) {
 
 func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
@@ -512,7 +512,7 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -521,7 +521,7 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -530,7 +530,7 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Create initial share code
@@ -540,13 +540,13 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 		Code:       "OLD123",
 		Expiry:     time.Now().Add(24 * time.Hour),
 	}
-	err = testDB.Create(&initialShareCode).Error
+	err = testConn.GetDB().Create(&initialShareCode).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/share-code", RequestShopListShareCode)
+	router.POST("/shoplist/:id/share-code", shoplistHandler.RequestShopListShareCode)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/1/share-code", nil)
@@ -559,7 +559,7 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	RequestShopListShareCode(c)
+	shoplistHandler.RequestShopListShareCode(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -581,7 +581,7 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 
 	// Verify only one share code exists
 	var shareCodeCount int64
-	err = testDB.Model(&model.ShoplistShareCode{}).
+	err = testConn.GetDB().Model(&model.ShoplistShareCode{}).
 		Where("shop_list_id = ?", testShoplist.ID).
 		Count(&shareCodeCount).Error
 	assert.NoError(t, err)
@@ -589,14 +589,14 @@ func TestRequestShopListShareCodeOwnerReplaceExisting(t *testing.T) {
 
 	// Verify new share code is saved
 	var newShareCode model.ShoplistShareCode
-	err = testDB.Where("shop_list_id = ?", testShoplist.ID).First(&newShareCode).Error
+	err = testConn.GetDB().Where("shop_list_id = ?", testShoplist.ID).First(&newShareCode).Error
 	assert.NoError(t, err)
 	assert.Equal(t, response["share_code"], newShareCode.Code, "Share code in database should match response")
 }
 
 func TestRequestShopListShareCodeMember(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -609,9 +609,9 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 		Nickname:   "Member",
 		PostalCode: "238802",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&member).Error
+	err = testConn.GetDB().Create(&member).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -620,7 +620,7 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -629,7 +629,7 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Add member to shoplist
@@ -638,13 +638,13 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
 	}
-	err = testDB.Create(&shoplistMember).Error
+	err = testConn.GetDB().Create(&shoplistMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/share-code", RequestShopListShareCode)
+	router.POST("/shoplist/:id/share-code", shoplistHandler.RequestShopListShareCode)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/1/share-code", nil)
@@ -657,7 +657,7 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 	c.Set("userID", member.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	RequestShopListShareCode(c)
+	shoplistHandler.RequestShopListShareCode(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -672,7 +672,7 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 
 func TestRequestShopListShareCodeNonMember(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
 	owner := model.User{
@@ -685,9 +685,9 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 		Nickname:   "Non-Member",
 		PostalCode: "238803",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
-	err = testDB.Create(&nonMember).Error
+	err = testConn.GetDB().Create(&nonMember).Error
 	assert.NoError(t, err)
 
 	// Create test shoplist
@@ -696,7 +696,7 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
 	}
-	err = testDB.Create(&testShoplist).Error
+	err = testConn.GetDB().Create(&testShoplist).Error
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
@@ -705,13 +705,13 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
 	}
-	err = testDB.Create(&ownerMember).Error
+	err = testConn.GetDB().Create(&ownerMember).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/share-code", RequestShopListShareCode)
+	router.POST("/shoplist/:id/share-code", shoplistHandler.RequestShopListShareCode)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/1/share-code", nil)
@@ -724,7 +724,7 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 	c.Set("userID", nonMember.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "1"}}
 
-	RequestShopListShareCode(c)
+	shoplistHandler.RequestShopListShareCode(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -739,7 +739,7 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 
 func TestRequestShopListShareCodeNonExistent(t *testing.T) {
 	// Setup test database
-	testDB := testutil.SetupTestEnv(t)
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
 	owner := model.User{
@@ -747,13 +747,13 @@ func TestRequestShopListShareCodeNonExistent(t *testing.T) {
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	err := testDB.Create(&owner).Error
+	err := testConn.GetDB().Create(&owner).Error
 	assert.NoError(t, err)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/shoplist/:id/share-code", RequestShopListShareCode)
+	router.POST("/shoplist/:id/share-code", shoplistHandler.RequestShopListShareCode)
 
 	// Create request
 	req, _ := http.NewRequest("POST", "/shoplist/99999/share-code", nil)
@@ -766,7 +766,7 @@ func TestRequestShopListShareCodeNonExistent(t *testing.T) {
 	c.Set("userID", owner.ID)
 	c.Params = []gin.Param{{Key: "id", Value: "99999"}}
 
-	RequestShopListShareCode(c)
+	shoplistHandler.RequestShopListShareCode(c)
 
 	// Assert response
 	assert.Equal(t, http.StatusNotFound, w.Code)

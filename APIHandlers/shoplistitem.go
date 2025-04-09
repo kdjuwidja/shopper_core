@@ -5,9 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
+	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 )
 
 // AddItemToShopList adds a new item to a shoplist
@@ -29,7 +27,7 @@ import (
 // @Failure 404 {object} map[string]string "Not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items [put]
-func AddItemToShopList(c *gin.Context) {
+func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -55,26 +53,18 @@ func AddItemToShopList(c *gin.Context) {
 		return
 	}
 
-	// Check if user is a member of the shoplist
-	var member model.ShoplistMember
-	err = db.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	// Create new item
-	newItem := model.ShoplistItem{
-		ShopListID: shoplistID,
-		ItemName:   requestBody.ItemName,
-		BrandName:  requestBody.BrandName,
-		ExtraInfo:  requestBody.ExtraInfo,
-		IsBought:   false,
-	}
-
-	// Save to database
-	if err := db.GetDB().Create(&newItem).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item"})
+	newItem, shoplistErr := h.shoplistBiz.AddItemToShopList(userID, shoplistID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+		case bizshoplist.ShoplistItemNameEmpty:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Item name is required."})
+		case bizshoplist.ShoplistFailedToCreate:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item."})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item."})
+		}
 		return
 	}
 
@@ -103,7 +93,7 @@ func AddItemToShopList(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Item not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items/{itemId} [delete]
-func RemoveItemFromShopList(c *gin.Context) {
+func (h *ShoplistHandler) RemoveItemFromShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -124,35 +114,20 @@ func RemoveItemFromShopList(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-		return
-	}
-
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	// Check if item exists and belongs to the shoplist
-	var item model.ShoplistItem
-	err = db.GetDB().Where("id = ? AND shop_list_id = ?", itemID, shoplistID).First(&item).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
-			return
+	shoplistErr := h.shoplistBiz.RemoveItemFromShopList(userID, shoplistID, itemID)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+		case bizshoplist.ShoplistItemNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found."})
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove item."})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check item"})
-		return
-	}
-
-	// Delete the item
-	err = db.GetDB().Unscoped().Delete(&item).Error
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove item"})
 		return
 	}
 
@@ -183,7 +158,7 @@ func RemoveItemFromShopList(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Item not found"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Router /shoplist/{id}/items/{itemId} [post]
-func UpdateShoplistItem(c *gin.Context) {
+func (h *ShoplistHandler) UpdateShoplistItem(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
@@ -223,59 +198,29 @@ func UpdateShoplistItem(c *gin.Context) {
 		return
 	}
 
-	// Get shoplist data including members
-	shopListData, err := getShoplistWithMembers(shoplistID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
-		return
-	}
-
-	// Check if user is a member
-	if _, exists := shopListData.Members[userID]; !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-		return
-	}
-
-	// Check if item exists and belongs to the shoplist
-	var item model.ShoplistItem
-	err = db.GetDB().Where("id = ? AND shop_list_id = ?", itemID, shoplistID).First(&item).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
-			return
+	updatedItem, shoplistErr := h.shoplistBiz.UpdateShoplistItem(userID, shoplistID, itemID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.IsBought)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+		case bizshoplist.ShoplistNotMember:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+		case bizshoplist.ShoplistItemNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found."})
+		case bizshoplist.ShoplistFailedToProcess:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item."})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check item"})
-		return
-	}
-
-	// Update only the fields that are provided in the request
-	updates := make(map[string]interface{})
-	if requestBody.ItemName != nil {
-		updates["item_name"] = *requestBody.ItemName
-	}
-	if requestBody.BrandName != nil {
-		updates["brand_name"] = *requestBody.BrandName
-	}
-	if requestBody.ExtraInfo != nil {
-		updates["extra_info"] = *requestBody.ExtraInfo
-	}
-	if requestBody.IsBought != nil {
-		updates["is_bought"] = *requestBody.IsBought
-	}
-
-	// Update the item
-	err = db.GetDB().Model(&item).Updates(updates).Error
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
 		return
 	}
 
 	// Return the updated item
 	c.JSON(http.StatusOK, gin.H{
-		"id":         item.ID,
-		"item_name":  item.ItemName,
-		"brand_name": item.BrandName,
-		"extra_info": item.ExtraInfo,
-		"is_bought":  item.IsBought,
+		"id":         itemID,
+		"item_name":  updatedItem.ItemName,
+		"brand_name": updatedItem.BrandName,
+		"extra_info": updatedItem.ExtraInfo,
+		"is_bought":  updatedItem.IsBought,
 	})
 }
