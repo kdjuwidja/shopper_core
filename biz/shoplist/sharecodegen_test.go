@@ -1,4 +1,4 @@
-package util
+package bizshoplist
 
 import (
 	"regexp"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"netherrealmstudio.com/aishoppercore/m/model"
+	"netherrealmstudio.com/aishoppercore/m/db"
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
@@ -29,11 +29,10 @@ func TestShareCodeGen(t *testing.T) {
 }
 
 func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
+	testDB := testutil.SetupTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Test Owner",
 		PostalCode: "238801",
@@ -42,7 +41,7 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a new shoplist for this test
-	shoplist := model.Shoplist{
+	shoplist := db.Shoplist{
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 1",
 	}
@@ -50,7 +49,7 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 	assert.NoError(t, err)
 
 	code := GenerateShareCode(6)
-	shareCode := model.ShoplistShareCode{
+	shareCode := db.ShoplistShareCode{
 		ShopListID: shoplist.ID,
 		Code:       code,
 		Expiry:     time.Now().Add(24 * time.Hour),
@@ -63,11 +62,10 @@ func TestVerifyShareCodeExistsAndNotExpired(t *testing.T) {
 }
 
 func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
+	testDB := testutil.SetupTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Test Owner",
 		PostalCode: "238801",
@@ -76,7 +74,7 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a new shoplist for this test
-	shoplist := model.Shoplist{
+	shoplist := db.Shoplist{
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
 	}
@@ -84,7 +82,7 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 	assert.NoError(t, err)
 
 	code := GenerateShareCode(6)
-	shareCode := model.ShoplistShareCode{
+	shareCode := db.ShoplistShareCode{
 		ShopListID: shoplist.ID,
 		Code:       code,
 		Expiry:     time.Now().Add(-1 * time.Hour),
@@ -97,8 +95,7 @@ func TestVerifyShareCodeExistsAndExpired(t *testing.T) {
 }
 
 func TestVerifyShareCodeValidFormatNotInDB(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
+	testDB := testutil.SetupTestEnv(t)
 
 	code := GenerateShareCode(6)
 	result := VerifyShareCodeFromDB(testDB.GetDB(), code)
@@ -106,8 +103,7 @@ func TestVerifyShareCodeValidFormatNotInDB(t *testing.T) {
 }
 
 func TestVerifyShareCodeNonExistent(t *testing.T) {
-	testDB := testutil.SetupTestDB(t)
-	t.Cleanup(func() { testutil.TeardownTestDB(testDB) })
+	testDB := testutil.SetupTestEnv(t)
 
 	result := VerifyShareCodeFromDB(testDB.GetDB(), "NONEXISTENT")
 	assert.True(t, result)

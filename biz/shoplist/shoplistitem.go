@@ -2,16 +2,16 @@ package bizshoplist
 
 import (
 	"gorm.io/gorm"
-	"netherrealmstudio.com/aishoppercore/m/model"
+	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
-func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName string, brandName string, extraInfo string) (*model.ShoplistItem, *ShoplistError) {
+func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName string, brandName string, extraInfo string) (*db.ShoplistItem, *ShoplistError) {
 	if !b.checkShoplistMembershipFromDB(userID, shoplistID) {
 		return nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
 
 	// Create new item
-	newItem := model.ShoplistItem{
+	newItem := db.ShoplistItem{
 		ShopListID: shoplistID,
 		ItemName:   itemName,
 		BrandName:  brandName,
@@ -43,7 +43,7 @@ func (b *ShoplistBiz) RemoveItemFromShopList(userID string, shoplistID int, item
 	}
 
 	// check if item exists and belongs to the shoplist
-	var item model.ShoplistItem
+	var item db.ShoplistItem
 	err := b.dbPool.GetDB().Where("id = ? AND shop_list_id = ?", itemID, shoplistID).First(&item).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -61,7 +61,7 @@ func (b *ShoplistBiz) RemoveItemFromShopList(userID string, shoplistID int, item
 	return nil
 }
 
-func (b *ShoplistBiz) UpdateShoplistItem(userID string, shoplistID int, itemID int, itemName *string, brandName *string, extraInfo *string, isBought *bool) (*model.ShoplistItem, *ShoplistError) {
+func (b *ShoplistBiz) UpdateShoplistItem(userID string, shoplistID int, itemID int, itemName *string, brandName *string, extraInfo *string, isBought *bool) (*db.ShoplistItem, *ShoplistError) {
 	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
 	if shopListErr != nil {
 		return nil, shopListErr
@@ -73,7 +73,7 @@ func (b *ShoplistBiz) UpdateShoplistItem(userID string, shoplistID int, itemID i
 	}
 
 	//check if item exists and belongs to the shoplist
-	var item model.ShoplistItem
+	var item db.ShoplistItem
 	err := b.dbPool.GetDB().Where("id = ? AND shop_list_id = ?", itemID, shoplistID).First(&item).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

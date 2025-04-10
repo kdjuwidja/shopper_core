@@ -1,13 +1,12 @@
 package main
 
 import (
-	"os"
 	"strings"
 
+	"github.com/kdjuwidja/aishoppercommon/logger"
+	commonOs "github.com/kdjuwidja/aishoppercommon/os"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	"netherrealmstudio.com/aishoppercore/m/common/env"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/logger"
 	"netherrealmstudio.com/aishoppercore/m/oauth"
 
 	"github.com/gin-contrib/cors"
@@ -22,13 +21,13 @@ func main() {
 	}
 
 	mysqlConn := &db.MySQLConnectionPool{}
-	mysqlConn.Configure(env.GetEnvString("AI_SHOPPER_CORE_DB_USER", "ai_shopper_dev"),
-		env.GetEnvString("AI_SHOPPER_CORE_DB_PASSWORD", "password"),
-		env.GetEnvString("AI_SHOPPER_CORE_DB_HOST", "localhost"),
-		env.GetEnvString("AI_SHOPPER_CORE_DB_PORT", "3306"),
-		env.GetEnvString("AI_SHOPPER_CORE_DB_NAME", "ai_shopper_core"),
-		env.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_OPEN_CONNS", 25),
-		env.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10))
+	mysqlConn.Configure(commonOs.GetEnvString("AI_SHOPPER_CORE_DB_USER", "ai_shopper_dev"),
+		commonOs.GetEnvString("AI_SHOPPER_CORE_DB_PASSWORD", "password"),
+		commonOs.GetEnvString("AI_SHOPPER_CORE_DB_HOST", "localhost"),
+		commonOs.GetEnvString("AI_SHOPPER_CORE_DB_PORT", "3306"),
+		commonOs.GetEnvString("AI_SHOPPER_CORE_DB_NAME", "ai_shopper_core"),
+		commonOs.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_OPEN_CONNS", 25),
+		commonOs.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10))
 
 	// Initialize database connection
 	_, err = db.InitializeMySQLConnPoolSingleton(mysqlConn)
@@ -47,17 +46,16 @@ func main() {
 
 	// CORS configuration
 	corsConfig := cors.DefaultConfig()
-	if origins := os.Getenv("CORS_ALLOW_ORIGINS"); origins != "" {
-		corsConfig.AllowOrigins = strings.Split(origins, ",")
-	} else {
-		corsConfig.AllowOrigins = []string{"http://localhost:5173"}
-	}
-	if methods := os.Getenv("CORS_ALLOW_METHODS"); methods != "" {
-		corsConfig.AllowMethods = strings.Split(methods, ",")
-	}
-	if headers := os.Getenv("CORS_ALLOW_HEADERS"); headers != "" {
-		corsConfig.AllowHeaders = strings.Split(headers, ",")
-	}
+
+	origins := commonOs.GetEnvString("CORS_ALLOW_ORIGINS", "http://localhost:5173")
+	corsConfig.AllowOrigins = strings.Split(origins, ",")
+
+	methods := commonOs.GetEnvString("CORS_ALLOW_METHODS", "GET, POST, PUT, DELETE, OPTIONS")
+	corsConfig.AllowMethods = strings.Split(methods, ",")
+
+	headers := commonOs.GetEnvString("CORS_ALLOW_HEADERS", "Content-Type, Authorization")
+	corsConfig.AllowHeaders = strings.Split(headers, ",")
+
 	r.Use(cors.New(corsConfig))
 
 	// Initialize API Handlers

@@ -1,12 +1,12 @@
 package bizshoplist
 
 import (
-	"netherrealmstudio.com/aishoppercore/m/model"
+	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
 // checkShoplistMembership checks if a user is a member of a shoplist
 func (b *ShoplistBiz) checkShoplistMembershipFromDB(userID string, shoplistID int) bool {
-	var member model.ShoplistMember
+	var member db.ShoplistMember
 	err := b.dbPool.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
 	return err == nil
 }
@@ -54,7 +54,7 @@ func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *Sh
 // CreateShoplist creates a new shoplist and adds the owner as a member
 func (b *ShoplistBiz) CreateShoplist(ownerID string, name string) *ShoplistError {
 	// Create new shoplist
-	shoplist := model.Shoplist{
+	shoplist := db.Shoplist{
 		OwnerID: ownerID,
 		Name:    name,
 	}
@@ -68,7 +68,7 @@ func (b *ShoplistBiz) CreateShoplist(ownerID string, name string) *ShoplistError
 		return NewShoplistError(ShoplistFailedToCreate, err.Error())
 	}
 
-	member := model.ShoplistMember{
+	member := db.ShoplistMember{
 		ShopListID: shoplist.ID,
 		MemberID:   ownerID,
 	}
@@ -162,7 +162,7 @@ func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string)
 	}
 
 	// Update shoplist name
-	if err := b.dbPool.GetDB().Model(&model.Shoplist{}).Where("id = ?", shoplistID).Update("name", name).Error; err != nil {
+	if err := b.dbPool.GetDB().Model(&db.Shoplist{}).Where("id = ?", shoplistID).Update("name", name).Error; err != nil {
 		return NewShoplistError(ShoplistFailedToUpdate, err.Error())
 	}
 

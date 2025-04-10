@@ -3,7 +3,6 @@ package bizuser
 import (
 	"gorm.io/gorm/clause"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
 )
 
 type UserBiz struct {
@@ -17,8 +16,8 @@ func InitializeUserBiz(dbPool db.MySQLConnectionPool) *UserBiz {
 	}
 }
 
-func (b *UserBiz) GetUserProfile(userID string) (*model.User, error) {
-	user := &model.User{}
+func (b *UserBiz) GetUserProfile(userID string) (*db.User, error) {
+	user := &db.User{}
 	if err := b.dbPool.GetDB().Where("id = ?", userID).First(user).Error; err != nil {
 		return nil, err
 	}
@@ -26,7 +25,7 @@ func (b *UserBiz) GetUserProfile(userID string) (*model.User, error) {
 	return user, nil
 }
 
-func (b *UserBiz) CreateOrUpdateUserProfile(userID string, user *model.User) error {
+func (b *UserBiz) CreateOrUpdateUserProfile(userID string, user *db.User) error {
 	if err := b.dbPool.GetDB().Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"postal_code", "nickname"}),

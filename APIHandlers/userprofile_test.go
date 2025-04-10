@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
@@ -24,7 +23,7 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user
-	testUser := model.User{
+	testUser := db.User{
 		ID:         "test-user-id",
 		Nickname:   "Test User",
 		PostalCode: "A1B2C3",
@@ -38,7 +37,7 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 	userProfileHandler.GetUserProfile(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var response model.User
+	var response db.User
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, testUser.ID, response.ID)
@@ -78,7 +77,7 @@ func TestCreateUserProfile(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 
 	// Verify user was saved in database
-	var savedUser model.User
+	var savedUser db.User
 	err := testDBConn.GetDB().First(&savedUser, "id = ?", "new-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, "A1B2C3", savedUser.PostalCode)
@@ -89,7 +88,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user for update tests
-	testUser := model.User{
+	testUser := db.User{
 		ID:         "test-user-id",
 		Nickname:   "Original Name",
 		PostalCode: "A1B2C3",
@@ -113,7 +112,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 
 	// Verify user was updated in database
-	var savedUser model.User
+	var savedUser db.User
 	err := testDBConn.GetDB().First(&savedUser, "id = ?", "test-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, strings.ToUpper("B2C3D4"), savedUser.PostalCode)

@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/model"
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
@@ -25,7 +24,7 @@ func TestCreateShoplistValid(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	testUser := model.User{
+	testUser := db.User{
 		ID:         "test-user-123",
 		PostalCode: "238801", // Valid Singapore postal code
 	}
@@ -65,14 +64,14 @@ func TestCreateShoplistValid(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify database
-	var shoplist model.Shoplist
+	var shoplist db.Shoplist
 	err = testConn.GetDB().First(&shoplist, 1).Error
 	assert.NoError(t, err)
 	assert.Equal(t, "Test Shoplist", shoplist.Name)
 	assert.Equal(t, testUser.ID, shoplist.OwnerID)
 
 	// Check if the owner is also a member of the shoplist
-	var member model.ShoplistMember
+	var member db.ShoplistMember
 	err = testConn.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplist.ID, testUser.ID).First(&member).Error
 	assert.NoError(t, err)
 	assert.Equal(t, testUser.ID, member.MemberID)
@@ -82,7 +81,7 @@ func TestCreateShoplistInvalid(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	testUser := model.User{
+	testUser := db.User{
 		ID:         "test-user-123",
 		PostalCode: "238801", // Valid Singapore postal code
 	}
@@ -128,12 +127,12 @@ func TestGetAllShoplistsOwner(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		Nickname:   "Member",
 		PostalCode: "238802",
@@ -144,12 +143,12 @@ func TestGetAllShoplistsOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplists
-	shoplist1 := model.Shoplist{
+	shoplist1 := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Shoplist 1",
 	}
-	shoplist2 := model.Shoplist{
+	shoplist2 := db.Shoplist{
 		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Shoplist 2",
@@ -160,12 +159,12 @@ func TestGetAllShoplistsOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to their own shoplists
-	ownerMember1 := model.ShoplistMember{
+	ownerMember1 := db.ShoplistMember{
 		ID:         1,
 		ShopListID: shoplist1.ID,
 		MemberID:   owner.ID,
 	}
-	ownerMember2 := model.ShoplistMember{
+	ownerMember2 := db.ShoplistMember{
 		ID:         2,
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
@@ -232,12 +231,12 @@ func TestGetAllShoplistsMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		Nickname:   "Member",
 		PostalCode: "238802",
@@ -248,12 +247,12 @@ func TestGetAllShoplistsMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplists
-	shoplist1 := model.Shoplist{
+	shoplist1 := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Shoplist 1",
 	}
-	shoplist3 := model.Shoplist{
+	shoplist3 := db.Shoplist{
 		ID:      3,
 		OwnerID: member.ID,
 		Name:    "Shoplist 3",
@@ -264,7 +263,7 @@ func TestGetAllShoplistsMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist1
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         3,
 		ShopListID: shoplist1.ID,
 		MemberID:   member.ID,
@@ -273,7 +272,7 @@ func TestGetAllShoplistsMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member as member to their own shoplist
-	memberOwnShoplist := model.ShoplistMember{
+	memberOwnShoplist := db.ShoplistMember{
 		ID:         4,
 		ShopListID: shoplist3.ID,
 		MemberID:   member.ID,
@@ -338,7 +337,7 @@ func TestGetAllShoplistsNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		Nickname:   "Non-Member",
 		PostalCode: "238803",
@@ -386,12 +385,12 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		Nickname:   "Member",
 		PostalCode: "238802",
@@ -402,7 +401,7 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist with items
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -411,7 +410,7 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -420,7 +419,7 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         3,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -429,7 +428,7 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test items to shoplist
-	item1 := model.ShoplistItem{
+	item1 := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 1",
@@ -437,7 +436,7 @@ func TestGetShoplistOwnerWithItems(t *testing.T) {
 		ExtraInfo:  "Test Info 1",
 		IsBought:   false,
 	}
-	item2 := model.ShoplistItem{
+	item2 := db.ShoplistItem{
 		ID:         2,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 2",
@@ -526,7 +525,7 @@ func TestGetShoplistOwnerWithEmptyShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
@@ -535,7 +534,7 @@ func TestGetShoplistOwnerWithEmptyShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create empty shoplist
-	emptyShoplist := model.Shoplist{
+	emptyShoplist := db.Shoplist{
 		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Empty Shoplist",
@@ -544,7 +543,7 @@ func TestGetShoplistOwnerWithEmptyShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	emptyOwnerMember := model.ShoplistMember{
+	emptyOwnerMember := db.ShoplistMember{
 		ID:         2,
 		ShopListID: emptyShoplist.ID,
 		MemberID:   owner.ID,
@@ -604,12 +603,12 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		Nickname:   "Member",
 		PostalCode: "238802",
@@ -620,7 +619,7 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist with items
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -629,7 +628,7 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -638,7 +637,7 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         3,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -647,7 +646,7 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test items to shoplist
-	item1 := model.ShoplistItem{
+	item1 := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 1",
@@ -655,7 +654,7 @@ func TestGetShoplistMemberWithItems(t *testing.T) {
 		ExtraInfo:  "Test Info 1",
 		IsBought:   false,
 	}
-	item2 := model.ShoplistItem{
+	item2 := db.ShoplistItem{
 		ID:         2,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item 2",
@@ -744,11 +743,11 @@ func TestGetShoplistNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
@@ -758,7 +757,7 @@ func TestGetShoplistNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -767,7 +766,7 @@ func TestGetShoplistNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -809,7 +808,7 @@ func TestGetShoplistNonExistent(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -850,7 +849,7 @@ func TestUpdateShoplistOwner(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
@@ -859,7 +858,7 @@ func TestUpdateShoplistOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Original Name",
@@ -868,7 +867,7 @@ func TestUpdateShoplistOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -908,7 +907,7 @@ func TestUpdateShoplistOwner(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify database
-	var shoplist model.Shoplist
+	var shoplist db.Shoplist
 	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
 	assert.NoError(t, err)
 	assert.Equal(t, requestBody["name"], shoplist.Name)
@@ -919,12 +918,12 @@ func TestUpdateShoplistMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		Nickname:   "Member",
 		PostalCode: "238802",
@@ -935,7 +934,7 @@ func TestUpdateShoplistMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Original Name",
@@ -944,7 +943,7 @@ func TestUpdateShoplistMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -953,7 +952,7 @@ func TestUpdateShoplistMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -1000,12 +999,12 @@ func TestUpdateShoplistNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
 	}
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		Nickname:   "Non-Member",
 		PostalCode: "238803",
@@ -1016,7 +1015,7 @@ func TestUpdateShoplistNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Original Name",
@@ -1025,7 +1024,7 @@ func TestUpdateShoplistNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -1072,7 +1071,7 @@ func TestUpdateShoplistNonExistent(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
@@ -1119,7 +1118,7 @@ func TestUpdateShoplistEmptyName(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		Nickname:   "Owner",
 		PostalCode: "238801",
@@ -1128,7 +1127,7 @@ func TestUpdateShoplistEmptyName(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Original Name",
@@ -1137,7 +1136,7 @@ func TestUpdateShoplistEmptyName(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,

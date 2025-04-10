@@ -1,4 +1,4 @@
-package util
+package bizuser
 
 func VerifyPostalCode(postalCode string) bool {
 	if len(postalCode) != 6 {

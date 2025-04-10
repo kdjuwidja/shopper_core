@@ -9,14 +9,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"netherrealmstudio.com/aishoppercore/m/model"
+	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
 func TestAddItemToShopListOwner(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -24,7 +24,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -33,7 +33,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -81,7 +81,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 	}, response)
 
 	// Verify database
-	var item model.ShoplistItem
+	var item db.ShoplistItem
 	err = testConn.GetDB().First(&item, response["id"]).Error
 	assert.NoError(t, err)
 	assert.Equal(t, requestBody["item_name"], item.ItemName)
@@ -95,11 +95,11 @@ func TestAddItemToShopListMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
@@ -109,7 +109,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -118,7 +118,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -166,7 +166,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 	}, response)
 
 	// Verify database
-	var item model.ShoplistItem
+	var item db.ShoplistItem
 	err = testConn.GetDB().First(&item, response["id"]).Error
 	assert.NoError(t, err)
 	assert.Equal(t, requestBody["item_name"], item.ItemName)
@@ -180,11 +180,11 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
@@ -194,7 +194,7 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -242,7 +242,7 @@ func TestAddItemToShopListNonExistentShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -289,7 +289,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -297,7 +297,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -306,7 +306,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -353,7 +353,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -361,7 +361,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -370,7 +370,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -418,7 +418,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -426,7 +426,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -435,7 +435,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -444,7 +444,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -485,7 +485,7 @@ func TestRemoveItemFromShopListOwner(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify item is deleted from database
-	var deletedItem model.ShoplistItem
+	var deletedItem db.ShoplistItem
 	err = testConn.GetDB().First(&deletedItem, 1).Error
 	assert.Error(t, err, "Item should be deleted from database")
 	assert.True(t, err.Error() == "record not found", "Error should be record not found")
@@ -495,11 +495,11 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
@@ -509,7 +509,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -518,7 +518,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -527,7 +527,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -536,7 +536,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -577,7 +577,7 @@ func TestRemoveItemFromShopListMember(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify item is deleted from database
-	var deletedItem model.ShoplistItem
+	var deletedItem db.ShoplistItem
 	err = testConn.GetDB().First(&deletedItem, 1).Error
 	assert.Error(t, err, "Item should be deleted from database")
 	assert.True(t, err.Error() == "record not found", "Error should be record not found")
@@ -587,11 +587,11 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
@@ -601,7 +601,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -610,7 +610,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -619,7 +619,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -662,7 +662,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	}, response)
 
 	// Verify item still exists in database
-	var existingItem model.ShoplistItem
+	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err, "Item should still exist in database")
 }
@@ -671,7 +671,7 @@ func TestRemoveItemFromShopListNonExistentShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -714,7 +714,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -722,7 +722,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -731,7 +731,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -775,7 +775,7 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -783,12 +783,12 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplists
-	shoplist1 := model.Shoplist{
+	shoplist1 := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 1",
 	}
-	shoplist2 := model.Shoplist{
+	shoplist2 := db.Shoplist{
 		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
@@ -799,12 +799,12 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to both shoplists
-	ownerMember1 := model.ShoplistMember{
+	ownerMember1 := db.ShoplistMember{
 		ID:         1,
 		ShopListID: shoplist1.ID,
 		MemberID:   owner.ID,
 	}
-	ownerMember2 := model.ShoplistMember{
+	ownerMember2 := db.ShoplistMember{
 		ID:         2,
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
@@ -815,7 +815,7 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to second shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: shoplist2.ID,
 		ItemName:   "Test Item",
@@ -858,7 +858,7 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	}, response)
 
 	// Verify item still exists in database
-	var existingItem model.ShoplistItem
+	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err, "Item should still exist in database")
 }
@@ -867,7 +867,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -875,7 +875,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -884,7 +884,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -893,7 +893,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -945,7 +945,7 @@ func TestUpdateShoplistItemOwner(t *testing.T) {
 	}, response)
 
 	// Verify database
-	var updatedItem model.ShoplistItem
+	var updatedItem db.ShoplistItem
 	err = testConn.GetDB().First(&updatedItem, 1).Error
 	assert.NoError(t, err)
 	assert.True(t, updatedItem.IsBought)
@@ -955,11 +955,11 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	member := model.User{
+	member := db.User{
 		ID:         "member-123",
 		PostalCode: "238802",
 	}
@@ -969,7 +969,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -978,7 +978,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -987,7 +987,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add member to shoplist
-	shoplistMember := model.ShoplistMember{
+	shoplistMember := db.ShoplistMember{
 		ID:         2,
 		ShopListID: testShoplist.ID,
 		MemberID:   member.ID,
@@ -996,7 +996,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -1048,7 +1048,7 @@ func TestUpdateShoplistItemMember(t *testing.T) {
 	}, response)
 
 	// Verify database
-	var updatedItem model.ShoplistItem
+	var updatedItem db.ShoplistItem
 	err = testConn.GetDB().First(&updatedItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, updatedItem.IsBought)
@@ -1058,11 +1058,11 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test users
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
-	nonMember := model.User{
+	nonMember := db.User{
 		ID:         "non-member-123",
 		PostalCode: "238803",
 	}
@@ -1072,7 +1072,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -1081,7 +1081,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -1090,7 +1090,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -1138,7 +1138,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	}, response)
 
 	// Verify item is unchanged in database
-	var existingItem model.ShoplistItem
+	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)
@@ -1148,7 +1148,7 @@ func TestUpdateShoplistItemNonExistentShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -1196,7 +1196,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -1204,7 +1204,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -1213,7 +1213,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -1262,7 +1262,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -1270,12 +1270,12 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplists
-	shoplist1 := model.Shoplist{
+	shoplist1 := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 1",
 	}
-	shoplist2 := model.Shoplist{
+	shoplist2 := db.Shoplist{
 		ID:      2,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist 2",
@@ -1286,12 +1286,12 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to both shoplists
-	ownerMember1 := model.ShoplistMember{
+	ownerMember1 := db.ShoplistMember{
 		ID:         1,
 		ShopListID: shoplist1.ID,
 		MemberID:   owner.ID,
 	}
-	ownerMember2 := model.ShoplistMember{
+	ownerMember2 := db.ShoplistMember{
 		ID:         2,
 		ShopListID: shoplist2.ID,
 		MemberID:   owner.ID,
@@ -1302,7 +1302,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to second shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: shoplist2.ID,
 		ItemName:   "Test Item",
@@ -1350,7 +1350,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	}, response)
 
 	// Verify item still exists in database
-	var existingItem model.ShoplistItem
+	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)
@@ -1360,7 +1360,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	shoplistHandler, testConn := setUpShoplistTestEnv(t)
 
 	// Create test user
-	owner := model.User{
+	owner := db.User{
 		ID:         "owner-123",
 		PostalCode: "238801",
 	}
@@ -1368,7 +1368,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create test shoplist
-	testShoplist := model.Shoplist{
+	testShoplist := db.Shoplist{
 		ID:      1,
 		OwnerID: owner.ID,
 		Name:    "Test Shoplist",
@@ -1377,7 +1377,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add owner as member to shoplist
-	ownerMember := model.ShoplistMember{
+	ownerMember := db.ShoplistMember{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		MemberID:   owner.ID,
@@ -1386,7 +1386,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Add test item to shoplist
-	item := model.ShoplistItem{
+	item := db.ShoplistItem{
 		ID:         1,
 		ShopListID: testShoplist.ID,
 		ItemName:   "Test Item",
@@ -1432,7 +1432,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	}, response)
 
 	// Verify item is unchanged in database
-	var existingItem model.ShoplistItem
+	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
 	assert.NoError(t, err)
 	assert.False(t, existingItem.IsBought)

@@ -3,10 +3,9 @@ package db
 import (
 	"fmt"
 
+	"github.com/kdjuwidja/aishoppercommon/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"netherrealmstudio.com/aishoppercore/m/logger"
-	"netherrealmstudio.com/aishoppercore/m/model"
 )
 
 type MySQLConnectionPool struct {
@@ -58,11 +57,11 @@ func (c *MySQLConnectionPool) Initialize() error {
 
 func (c *MySQLConnectionPool) AutoMigrate() error {
 	err := c.db.AutoMigrate(
-		&model.ShoplistItem{},
-		&model.ShoplistMember{},
-		&model.ShoplistShareCode{},
-		&model.Shoplist{},
-		&model.User{},
+		&ShoplistItem{},
+		&ShoplistMember{},
+		&ShoplistShareCode{},
+		&Shoplist{},
+		&User{},
 	)
 
 	if err != nil {
@@ -74,11 +73,11 @@ func (c *MySQLConnectionPool) AutoMigrate() error {
 
 func (c *MySQLConnectionPool) DropTables() error {
 	return c.db.Migrator().DropTable(
-		&model.ShoplistItem{},
-		&model.ShoplistMember{},
-		&model.ShoplistShareCode{},
-		&model.Shoplist{},
-		&model.User{},
+		&ShoplistItem{},
+		&ShoplistMember{},
+		&ShoplistShareCode{},
+		&Shoplist{},
+		&User{},
 	)
 }
 

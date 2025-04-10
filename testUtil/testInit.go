@@ -3,8 +3,8 @@ package testutil
 import (
 	"testing"
 
+	"github.com/kdjuwidja/aishoppercommon/logger"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/logger"
 )
 
 // SetupTestDB initializes a test database and migrates the schema

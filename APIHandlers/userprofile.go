@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 	bizuser "netherrealmstudio.com/aishoppercore/m/biz/user"
 	"netherrealmstudio.com/aishoppercore/m/db"
-	"netherrealmstudio.com/aishoppercore/m/logger"
-	"netherrealmstudio.com/aishoppercore/m/model"
-	"netherrealmstudio.com/aishoppercore/m/util"
 )
 
 // UserProfileHandler dependencies
@@ -67,13 +65,13 @@ func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 	}
 
 	postalCode := strings.ToUpper(req.PostalCode)
-	if !util.VerifyPostalCode(postalCode) {
+	if !bizuser.VerifyPostalCode(postalCode) {
 		logger.Tracef("%s: Invalid postal code", userID)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid postal code"})
 		return
 	}
 
-	user := model.User{
+	user := db.User{
 		ID:         userID,
 		Nickname:   req.Nickname,
 		PostalCode: postalCode,

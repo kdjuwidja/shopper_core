@@ -3,7 +3,7 @@ package db
 import (
 	"sync"
 
-	"netherrealmstudio.com/aishoppercore/m/logger"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 )
 
 var (

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"netherrealmstudio.com/aishoppercore/m/logger"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 )
 
 type VerifyFunc gin.HandlerFunc
