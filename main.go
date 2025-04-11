@@ -27,8 +27,7 @@ func main() {
 		&dbmodel.ShoplistShareCode{},
 		&dbmodel.User{},
 	}
-	mysqlConn := &db.MySQLConnectionPool{}
-	mysqlConn.Configure(osutil.GetEnvString("AI_SHOPPER_CORE_DB_USER", "ai_shopper_dev"),
+	mysqlConn, err := db.InitializeMySQLConnectionPool(osutil.GetEnvString("AI_SHOPPER_CORE_DB_USER", "ai_shopper_dev"),
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_PASSWORD", "password"),
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_HOST", "localhost"),
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_PORT", "3306"),
@@ -37,6 +36,9 @@ func main() {
 		osutil.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10),
 		models,
 	)
+	if err != nil {
+		logger.Fatalf("Failed to initialize MySQL connection pool: %v", err)
+	}
 	defer mysqlConn.Close()
 
 	// Migrate database

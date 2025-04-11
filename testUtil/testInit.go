@@ -10,10 +10,7 @@ import (
 
 // SetupTestDB initializes a test database and migrates the schema
 func SetupTestDB(t *testing.T, models []interface{}) *db.MySQLConnectionPool {
-	testConn := &db.MySQLConnectionPool{}
-	testConn.Configure("ai_shopper_dev", "password", "localhost", "4306", "test_db", 25, 10, models)
-
-	err := testConn.Initialize()
+	testConn, err := db.InitializeMySQLConnectionPool("ai_shopper_dev", "password", "localhost", "4306", "test_db", 25, 10, models)
 	if err != nil {
 		t.Fatalf("Failed to initialize test database: %v", err)
 	}
