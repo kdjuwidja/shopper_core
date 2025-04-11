@@ -1,4 +1,4 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
 	"bytes"
@@ -234,7 +234,7 @@ func TestAddItemToShopListNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -281,7 +281,7 @@ func TestAddItemToShopListNonExistentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -345,7 +345,7 @@ func TestAddItemToShopListMissingRequiredFields(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item name is required",
+		"code": "GEN_00003", "error": "Missing field in body: item_name",
 	}, response)
 }
 
@@ -410,7 +410,7 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item name is required",
+		"code": "GEN_00003", "error": "Missing field in body: item_name",
 	}, response)
 }
 
@@ -658,7 +658,7 @@ func TestRemoveItemFromShopListNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found.",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 
 	// Verify item still exists in database
@@ -706,7 +706,7 @@ func TestRemoveItemFromShopListNonExistentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found.",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -767,7 +767,7 @@ func TestRemoveItemFromShopListNonExistentItem(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found.",
+		"code": "SHP_00003", "error": "Item not found.",
 	}, response)
 }
 
@@ -854,7 +854,7 @@ func TestRemoveItemFromShopListDifferentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found.",
+		"code": "SHP_00003", "error": "Item not found.",
 	}, response)
 
 	// Verify item still exists in database
@@ -1134,7 +1134,7 @@ func TestUpdateShoplistItemNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found.",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 
 	// Verify item is unchanged in database
@@ -1188,7 +1188,7 @@ func TestUpdateShoplistItemNonExistentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found.",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -1254,7 +1254,7 @@ func TestUpdateShoplistItemNonExistentItem(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found.",
+		"code": "SHP_00003", "error": "Item not found.",
 	}, response)
 }
 
@@ -1346,7 +1346,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Item not found.",
+		"code": "SHP_00003", "error": "Item not found.",
 	}, response)
 
 	// Verify item still exists in database
@@ -1428,7 +1428,7 @@ func TestUpdateShoplistItemEmptyRequest(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought.",
+		"code": "SHP_00004", "error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought.",
 	}, response)
 
 	// Verify item is unchanged in database

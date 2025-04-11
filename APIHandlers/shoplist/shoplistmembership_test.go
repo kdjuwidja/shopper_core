@@ -1,4 +1,4 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
 	"encoding/json"
@@ -95,9 +95,7 @@ func TestLeaveShopListMember(t *testing.T) {
 	var response map[string]interface{}
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]interface{}{
-		"message": "Successfully left the shoplist",
-	}, response)
+	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify member is removed from shoplist
 	var memberCount int64
@@ -204,9 +202,7 @@ func TestLeaveShopListOwner(t *testing.T) {
 	var response map[string]interface{}
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]interface{}{
-		"message": "Successfully left the shoplist",
-	}, response)
+	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify member is removed from shoplist
 	var memberCount int64
@@ -291,9 +287,7 @@ func TestLeaveShopListLastMember(t *testing.T) {
 	var response map[string]interface{}
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]interface{}{
-		"message": "Successfully left the shoplist",
-	}, response)
+	assert.Equal(t, map[string]interface{}{}, response)
 
 	// Verify member is removed from shoplist
 	var memberCount int64
@@ -379,7 +373,7 @@ func TestLeaveShopListNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -420,7 +414,7 @@ func TestLeaveShopListNonExistent(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -666,7 +660,7 @@ func TestRequestShopListShareCodeMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Only the owner can generate share codes",
+		"code": "SHP_00002", "error": "Only the owner can perform this action.",
 	}, response)
 }
 
@@ -733,7 +727,7 @@ func TestRequestShopListShareCodeNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -775,6 +769,6 @@ func TestRequestShopListShareCodeNonExistent(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }

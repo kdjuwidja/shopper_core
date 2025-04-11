@@ -1,4 +1,4 @@
-package oauth
+package apiHandlers
 
 import (
 	"net/http"
@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 	"github.com/stretchr/testify/assert"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
 func setupRouter() *gin.Engine {
@@ -19,8 +19,11 @@ func setupRouter() *gin.Engine {
 }
 
 func TestVerifyTokenWithValidToken(t *testing.T) {
-	testutil.SetupTestLogger()
-	t.Cleanup(testutil.TeardownTestLogger)
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
 
 	// Save original JWT_SECRET and restore after test
 	originalSecret := os.Getenv("JWT_SECRET")
@@ -37,7 +40,7 @@ func TestVerifyTokenWithValidToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	router := setupRouter()
-	router.Use(VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		assert.True(t, exists)
 		assert.Equal(t, "test-user-id", userID)
@@ -53,8 +56,11 @@ func TestVerifyTokenWithValidToken(t *testing.T) {
 }
 
 func TestVerifyTokenMissingToken(t *testing.T) {
-	testutil.SetupTestLogger()
-	t.Cleanup(testutil.TeardownTestLogger)
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
 
 	// Save original JWT_SECRET and restore after test
 	originalSecret := os.Getenv("JWT_SECRET")
@@ -64,7 +70,7 @@ func TestVerifyTokenMissingToken(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -73,12 +79,15 @@ func TestVerifyTokenMissingToken(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, `{"error":"Invalid or missing bearer token"}`, w.Body.String())
+	assert.JSONEq(t, `{"code":"GEN_00001","error":"Invalid or missing bearer token."}`, w.Body.String())
 }
 
 func TestVerifyTokenInvalidBearerFormat(t *testing.T) {
-	testutil.SetupTestLogger()
-	t.Cleanup(testutil.TeardownTestLogger)
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
 
 	// Save original JWT_SECRET and restore after test
 	originalSecret := os.Getenv("JWT_SECRET")
@@ -88,7 +97,7 @@ func TestVerifyTokenInvalidBearerFormat(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -98,12 +107,15 @@ func TestVerifyTokenInvalidBearerFormat(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, `{"error":"Invalid or missing bearer token"}`, w.Body.String())
+	assert.JSONEq(t, `{"code":"GEN_00001","error":"Invalid or missing bearer token."}`, w.Body.String())
 }
 
 func TestVerifyTokenInvalidJWTToken(t *testing.T) {
-	testutil.SetupTestLogger()
-	t.Cleanup(testutil.TeardownTestLogger)
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
 
 	// Save original JWT_SECRET and restore after test
 	originalSecret := os.Getenv("JWT_SECRET")
@@ -113,7 +125,7 @@ func TestVerifyTokenInvalidJWTToken(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -123,12 +135,15 @@ func TestVerifyTokenInvalidJWTToken(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, `{"error":"Invalid token"}`, w.Body.String())
+	assert.JSONEq(t, `{"code":"GEN_00001","error":"Invalid or missing bearer token."}`, w.Body.String())
 }
 
 func TestVerifyTokenInvalidClaims(t *testing.T) {
-	testutil.SetupTestLogger()
-	t.Cleanup(testutil.TeardownTestLogger)
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
 
 	// Save original JWT_SECRET and restore after test
 	originalSecret := os.Getenv("JWT_SECRET")
@@ -138,7 +153,7 @@ func TestVerifyTokenInvalidClaims(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -148,5 +163,5 @@ func TestVerifyTokenInvalidClaims(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, `{"error":"Invalid token"}`, w.Body.String())
+	assert.JSONEq(t, `{"code":"GEN_00001","error":"Invalid or missing bearer token."}`, w.Body.String())
 }

@@ -31,21 +31,10 @@ func TeardownTestDB(testConn *db.MySQLConnectionPool) {
 	testConn.Close()
 }
 
-func SetupTestLogger() {
-	err := logger.Init("test")
-	if err != nil {
-		panic(err)
-	}
-}
-
-func TeardownTestLogger() {
-	logger.Close()
-}
-
 func SetupTestEnv(t *testing.T) *db.MySQLConnectionPool {
-	SetupTestLogger()
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
 	testDBConn := SetupTestDB(t)
 
-	t.Cleanup(TeardownTestLogger)
 	return testDBConn
 }

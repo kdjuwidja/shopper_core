@@ -1,24 +1,27 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
 type ShoplistHandler struct {
-	shoplistBiz *bizshoplist.ShoplistBiz
+	shoplistBiz     *bizshoplist.ShoplistBiz
+	responseFactory apiHandlers.ResponseFactory
 }
 
 // Dependency Injection for ShoplistHandler
-func InitializeShoplistHandler(dbPool db.MySQLConnectionPool) *ShoplistHandler {
+func InitializeShoplistHandler(dbPool db.MySQLConnectionPool, responseFactory apiHandlers.ResponseFactory) *ShoplistHandler {
 	return &ShoplistHandler{
-		shoplistBiz: bizshoplist.InitializeShoplistBiz(dbPool),
+		shoplistBiz:     bizshoplist.InitializeShoplistBiz(dbPool),
+		responseFactory: responseFactory,
 	}
 }
 
@@ -38,7 +41,8 @@ func InitializeShoplistHandler(dbPool db.MySQLConnectionPool) *ShoplistHandler {
 func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("CreateShoplist: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
@@ -46,22 +50,23 @@ func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInvalidRequestBody)
 		return
 	}
 
 	if req.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "name")
 		return
 	}
 
 	err := h.shoplistBiz.CreateShoplist(userID, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Errorf("CreateShoplist: Failed to create shoplist. Error: %s", err.Error())
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{})
+	h.responseFactory.CreateCreatedResponse(c, nil)
 }
 
 // GetAllShoplists retrieves all shoplists for the authenticated user
@@ -78,13 +83,15 @@ func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 func (h *ShoplistHandler) GetAllShoplists(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("GetAllShoplists: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	shoplistData, err := h.shoplistBiz.GetAllShoplists(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Errorf("GetAllShoplists: Failed to get all shoplists. Error: %s", err.Error())
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
@@ -113,9 +120,7 @@ func (h *ShoplistHandler) GetAllShoplists(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"shoplists": response,
-	})
+	h.responseFactory.CreateOKResponse(c, map[string]interface{}{"shoplists": response})
 }
 
 // GetShoplist retrieves a specific shoplist and its items
@@ -136,29 +141,32 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 	// Get shoplist ID from URL parameters
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("GetShoplist: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	shoplistData, shoplistErr := h.shoplistBiz.GetShoplist(userID, shoplistID)
 	if shoplistErr != nil {
 		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Error()})
+			logger.Errorf("GetShoplist: Failed to get shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
 	// massage response data into expected format
 	if len(shoplistData) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process shoplist data"})
+		logger.Errorf("GetShoplist: len(shoplistData) == 0, shoplistId: %d", shoplistID)
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
@@ -262,7 +270,7 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		response.Items = append(response.Items, item)
 	}
 
-	c.JSON(http.StatusOK, response)
+	h.responseFactory.CreateOKResponse(c, response)
 }
 
 // UpdateShoplist updates a shoplist's name
@@ -284,14 +292,15 @@ func (h *ShoplistHandler) UpdateShoplist(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("UpdateShoplist: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Get shoplist ID from URL
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
@@ -300,22 +309,22 @@ func (h *ShoplistHandler) UpdateShoplist(c *gin.Context) {
 		Name string `json:"name" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "name")
 		return
 	}
 
 	shoplistErr := h.shoplistBiz.UpdateShoplist(userID, shoplistID, requestBody.Name)
 	if shoplistErr != nil {
 		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		} else if shoplistErr.ErrCode == bizshoplist.ShoplistNotOwned {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can update this shoplist"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotOwned)
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Error()})
+			logger.Errorf("UpdateShoplist: Failed to update shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
-	// Return success
-	c.JSON(http.StatusOK, gin.H{})
+	h.responseFactory.CreateOKResponse(c, nil)
 }

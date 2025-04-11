@@ -1,24 +1,26 @@
-package apiHandlers
+package apihandlersuser
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kdjuwidja/aishoppercommon/logger"
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizuser "netherrealmstudio.com/aishoppercore/m/biz/user"
 	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
 // UserProfileHandler dependencies
 type UserProfileHandler struct {
-	userBiz bizuser.UserBiz
+	userBiz         bizuser.UserBiz
+	responseFactory apiHandlers.ResponseFactory
 }
 
 // Dependency Injection for UserProfileHandler
-func InitializeUserProfileHandler(dbPool db.MySQLConnectionPool) *UserProfileHandler {
+func InitializeUserProfileHandler(dbPool db.MySQLConnectionPool, responseFactory apiHandlers.ResponseFactory) *UserProfileHandler {
 	return &UserProfileHandler{
-		userBiz: *bizuser.InitializeUserBiz(dbPool),
+		userBiz:         *bizuser.InitializeUserBiz(dbPool),
+		responseFactory: responseFactory,
 	}
 }
 
@@ -28,11 +30,11 @@ func (h *UserProfileHandler) GetUserProfile(c *gin.Context) {
 
 	user, err := h.userBiz.GetUserProfile(userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrUserProfileNotFound)
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	h.responseFactory.CreateOKResponse(c, user)
 }
 
 func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
@@ -48,26 +50,26 @@ func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInvalidRequestBody)
 		return
 	}
 
 	if req.Nickname == "" {
 		logger.Tracef("%s: Nickname is empty", userID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "nickname is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "nickname")
 		return
 	}
 
 	if req.PostalCode == "" {
 		logger.Tracef("%s: Postal code is empty", userID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "postal_code is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "postal_code")
 		return
 	}
 
 	postalCode := strings.ToUpper(req.PostalCode)
 	if !bizuser.VerifyPostalCode(postalCode) {
 		logger.Tracef("%s: Invalid postal code", userID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid postal code"})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInvalidPostalCode)
 		return
 	}
 
@@ -79,10 +81,10 @@ func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 
 	err := h.userBiz.CreateOrUpdateUserProfile(userID, &user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	logger.Tracef("%s: User profile created or updated", userID)
-	c.JSON(http.StatusOK, gin.H{})
+	h.responseFactory.CreateOKResponse(c, nil)
 }

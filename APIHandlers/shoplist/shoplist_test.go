@@ -1,4 +1,4 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
 	"bytes"
@@ -10,13 +10,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	"netherrealmstudio.com/aishoppercore/m/db"
 	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
 )
 
 func setUpShoplistTestEnv(t *testing.T) (*ShoplistHandler, *db.MySQLConnectionPool) {
 	testDBConn := testutil.SetupTestEnv(t)
-	shoplistHandler := InitializeShoplistHandler(*testDBConn)
+	shoplistHandler := InitializeShoplistHandler(*testDBConn, apiHandlers.ResponseFactory{})
 	return shoplistHandler, testDBConn
 }
 
@@ -119,7 +120,7 @@ func TestCreateShoplistInvalid(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Name is required",
+		"code": "GEN_00003", "error": "Missing field in body: name",
 	}, response)
 }
 
@@ -799,7 +800,7 @@ func TestGetShoplistNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -840,7 +841,7 @@ func TestGetShoplistNonExistent(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -990,7 +991,7 @@ func TestUpdateShoplistMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Only the owner can update this shoplist",
+		"code": "SHP_00002", "error": "Only the owner can perform this action.",
 	}, response)
 }
 
@@ -1062,7 +1063,7 @@ func TestUpdateShoplistNonMember(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -1109,7 +1110,7 @@ func TestUpdateShoplistNonExistent(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Not found",
+		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
 }
 
@@ -1174,6 +1175,6 @@ func TestUpdateShoplistEmptyName(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"error": "Name is required",
+		"code": "GEN_00003", "error": "Missing field in body: name",
 	}, response)
 }

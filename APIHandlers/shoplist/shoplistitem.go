@@ -1,10 +1,11 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/logger"
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 )
 
@@ -31,14 +32,15 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("AddItemToShopList: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Get shoplist ID from URL
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
@@ -49,7 +51,7 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 		ExtraInfo string `json:"extra_info"`
 	}
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Item name is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "item_name")
 		return
 	}
 
@@ -57,25 +59,29 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistItemNameEmpty:
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Item name is required."})
+			h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "item_name")
 		case bizshoplist.ShoplistFailedToCreate:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item."})
+			logger.Errorf("AddItemToShopList: Failed to add item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item."})
+			logger.Errorf("AddItemToShopList: Failed to add item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
 	// Return the created item
-	c.JSON(http.StatusCreated, gin.H{
+	respData := map[string]interface{}{
 		"id":         newItem.ID,
 		"item_name":  newItem.ItemName,
 		"brand_name": newItem.BrandName,
 		"extra_info": newItem.ExtraInfo,
 		"is_bought":  newItem.IsBought,
-	})
+	}
+
+	h.responseFactory.CreateCreatedResponse(c, respData)
 }
 
 // RemoveItemFromShopList removes an item from a shoplist
@@ -97,20 +103,21 @@ func (h *ShoplistHandler) RemoveItemFromShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("RemoveItemFromShopList: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Parse shoplist ID and item ID from URL parameters
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
 	itemID, err := strconv.Atoi(c.Param("itemId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "itemId")
 		return
 	}
 
@@ -118,20 +125,22 @@ func (h *ShoplistHandler) RemoveItemFromShopList(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistItemNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistItemNotFound)
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			logger.Errorf("RemoveItemFromShopList: Failed to remove item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove item."})
+			logger.Errorf("RemoveItemFromShopList: Failed to remove item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	h.responseFactory.CreateOKResponse(c, nil)
 }
 
 // UpdateShoplistItem updates the bought status of an item
@@ -162,20 +171,21 @@ func (h *ShoplistHandler) UpdateShoplistItem(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("UpdateShoplistItem: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Parse shoplist ID and item ID from URL parameters
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
 	itemID, err := strconv.Atoi(c.Param("itemId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "itemId")
 		return
 	}
 
@@ -187,14 +197,14 @@ func (h *ShoplistHandler) UpdateShoplistItem(c *gin.Context) {
 		IsBought  *bool   `json:"is_bought"`
 	}
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "item_name")
 		return
 	}
 
 	// Check if request body is empty
 	if requestBody.ItemName == nil && requestBody.BrandName == nil &&
 		requestBody.ExtraInfo == nil && requestBody.IsBought == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request body must include at least one of item_name, brand_name, extra_info or Is_bought."})
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrMissingRequiredFieldUpdateShoplistItem)
 		return
 	}
 
@@ -202,25 +212,29 @@ func (h *ShoplistHandler) UpdateShoplistItem(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistItemNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found."})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistItemNotFound)
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			logger.Errorf("UpdateShoplistItem: Failed to update item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item."})
+			logger.Errorf("UpdateShoplistItem: Failed to update item. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
 	// Return the updated item
-	c.JSON(http.StatusOK, gin.H{
+	respData := map[string]interface{}{
 		"id":         itemID,
 		"item_name":  updatedItem.ItemName,
 		"brand_name": updatedItem.BrandName,
 		"extra_info": updatedItem.ExtraInfo,
 		"is_bought":  updatedItem.IsBought,
-	})
+	}
+
+	h.responseFactory.CreateOKResponse(c, respData)
 }

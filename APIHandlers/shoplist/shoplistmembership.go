@@ -1,12 +1,13 @@
-package apiHandlers
+package apiHandlersshoplist
 
 import (
-	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/logger"
 
+	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
 )
 
@@ -27,14 +28,15 @@ func (h *ShoplistHandler) LeaveShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("LeaveShopList: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Get shoplist ID from URL
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
@@ -42,16 +44,20 @@ func (h *ShoplistHandler) LeaveShopList(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			logger.Errorf("LeaveShopList: Failed to process shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		default:
+			logger.Errorf("LeaveShopList: Failed to process shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Successfully left the shoplist"})
+	h.responseFactory.CreateOKResponse(c, nil)
 }
 
 // RequestShopListShareCode generates a share code for a shoplist
@@ -72,14 +78,15 @@ func (h *ShoplistHandler) RequestShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("RequestShopListShareCode: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Get shoplist ID from URL
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
@@ -87,27 +94,27 @@ func (h *ShoplistHandler) RequestShopListShareCode(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-			return
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-			return
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotOwner:
-			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can generate share codes"})
-			return
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotOwned)
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
-			return
+			logger.Errorf("RequestShopListShareCode: Failed to process shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate share code"})
-			return
+			logger.Errorf("RequestShopListShareCode: Failed to generate share code. Error: %s", shoplistErr.Error())
 		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	respData := map[string]interface{}{
 		"share_code": shareCode.Code,
 		"expires_at": shareCode.Expiry.Format(time.RFC3339),
-	})
+	}
+
+	h.responseFactory.CreateOKResponse(c, respData)
 }
 
 // RevokeShopListShareCode revokes the active share code for a shoplist
@@ -127,14 +134,15 @@ func (h *ShoplistHandler) RevokeShopListShareCode(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("RevokeShopListShareCode: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
 	// Get shoplist ID from URL
 	shoplistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid shoplist ID"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
 		return
 	}
 
@@ -142,17 +150,23 @@ func (h *ShoplistHandler) RevokeShopListShareCode(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotOwner:
-			c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can revoke share codes"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotOwned)
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			logger.Errorf("RevokeShopListShareCode: Failed to process shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		default:
+			logger.Errorf("RevokeShopListShareCode: Failed to revoke share code. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	h.responseFactory.CreateOKResponse(c, nil)
 }
 
 // JoinShopList allows a user to join a shoplist using a share code
@@ -172,7 +186,8 @@ func (h *ShoplistHandler) JoinShopList(c *gin.Context) {
 	// Get user ID from context
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		logger.Errorf("JoinShopList: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
 
@@ -181,7 +196,7 @@ func (h *ShoplistHandler) JoinShopList(c *gin.Context) {
 		ShareCode string `json:"share_code" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Share code is required"})
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "share_code")
 		return
 	}
 
@@ -189,13 +204,19 @@ func (h *ShoplistHandler) JoinShopList(c *gin.Context) {
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistFailedToProcess:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": shoplistErr.Message})
+			logger.Errorf("JoinShopList: Failed to process shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		case bizshoplist.ShoplistNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
 		case bizshoplist.ShoplistNotMember:
-			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
+		default:
+			logger.Errorf("JoinShopList: Failed to join shoplist. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	h.responseFactory.CreateOKResponse(c, nil)
 }

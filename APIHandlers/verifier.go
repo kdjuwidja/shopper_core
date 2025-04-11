@@ -1,4 +1,4 @@
-package oauth
+package apiHandlers
 
 import (
 	"net/http"
@@ -9,13 +9,21 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/logger"
 )
 
-type VerifyFunc gin.HandlerFunc
+type TokenVerifier struct {
+	responseFactory ResponseFactory
+}
 
-func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
+func InitializeTokenVerifier(responseFactory ResponseFactory) *TokenVerifier {
+	return &TokenVerifier{
+		responseFactory: responseFactory,
+	}
+}
+
+func (v *TokenVerifier) VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" || len(token) < 7 || token[:7] != "Bearer " {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing bearer token"})
+			v.responseFactory.CreateErrorResponse(c, ErrInvalidToken)
 			c.Abort()
 			return
 		}
@@ -37,14 +45,14 @@ func VerifyToken(scopes []string, next gin.HandlerFunc) gin.HandlerFunc {
 		})
 
 		if err != nil || !tokenObj.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			v.responseFactory.CreateErrorResponse(c, ErrInvalidToken)
 			c.Abort()
 			return
 		}
 
 		mapClaims, ok := tokenObj.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			v.responseFactory.CreateErrorResponse(c, ErrInvalidToken)
 			c.Abort()
 			return
 		}
