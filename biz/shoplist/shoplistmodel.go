@@ -1,6 +1,8 @@
 package bizshoplist
 
-import "netherrealmstudio.com/aishoppercore/m/db"
+import (
+	"github.com/kdjuwidja/aishoppercommon/db"
+)
 
 // ShoplistBiz dependencies
 type ShoplistBiz struct {

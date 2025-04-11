@@ -4,10 +4,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizuser "netherrealmstudio.com/aishoppercore/m/biz/user"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
 )
 
 // UserProfileHandler dependencies
@@ -73,7 +74,7 @@ func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	user := db.User{
+	user := dbmodel.User{
 		ID:         userID,
 		Nickname:   req.Nickname,
 		PostalCode: postalCode,

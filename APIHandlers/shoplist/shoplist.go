@@ -5,11 +5,11 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
-	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
 type ShoplistHandler struct {

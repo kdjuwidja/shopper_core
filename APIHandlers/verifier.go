@@ -59,7 +59,12 @@ func (v *TokenVerifier) VerifyToken(scopes []string, next gin.HandlerFunc) gin.H
 			return
 		}
 
-		// TODO: Check if token has scope
+		if mapClaims["scope"] == nil {
+			v.responseFactory.CreateErrorResponse(c, ErrInvalidToken)
+			c.Abort()
+			return
+		}
+
 		jwtScopes := strings.Split(mapClaims["scope"].(string), " ")
 		for _, scope := range scopes {
 			if !slices.Contains(jwtScopes, scope) {

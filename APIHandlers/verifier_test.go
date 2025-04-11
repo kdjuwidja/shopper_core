@@ -18,7 +18,7 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
-func TestVerifyTokenWithValidToken(t *testing.T) {
+func TestVerifyTokenWithValidTokenAndScopes(t *testing.T) {
 	logger.SetServiceName("test")
 	logger.SetLevel("trace")
 
@@ -32,15 +32,16 @@ func TestVerifyTokenWithValidToken(t *testing.T) {
 	// Set test secret
 	os.Setenv("JWT_SECRET", "test-secret")
 
-	// Create a valid token
+	// Create a valid token with scopes
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": "test-user-id",
+		"sub":   "test-user-id",
+		"scope": "read write",
 	})
 	tokenString, err := token.SignedString([]byte("test-secret"))
 	assert.NoError(t, err)
 
 	router := setupRouter()
-	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{"read", "write"}, func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		assert.True(t, exists)
 		assert.Equal(t, "test-user-id", userID)
@@ -53,6 +54,77 @@ func TestVerifyTokenWithValidToken(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestVerifyTokenWithMissingScopes(t *testing.T) {
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
+
+	// Save original JWT_SECRET and restore after test
+	originalSecret := os.Getenv("JWT_SECRET")
+	defer os.Setenv("JWT_SECRET", originalSecret)
+
+	// Set test secret
+	os.Setenv("JWT_SECRET", "test-secret")
+
+	// Create a token without scopes
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": "test-user-id",
+	})
+	tokenString, err := token.SignedString([]byte("test-secret"))
+	assert.NoError(t, err)
+
+	router := setupRouter()
+	router.Use(tokenVerifier.VerifyToken([]string{"read"}, func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.JSONEq(t, `{"code":"GEN_00001","error":"Invalid or missing bearer token."}`, w.Body.String())
+}
+
+func TestVerifyTokenWithInsufficientScopes(t *testing.T) {
+	logger.SetServiceName("test")
+	logger.SetLevel("trace")
+
+	rf := ResponseFactory{}
+	tokenVerifier := InitializeTokenVerifier(rf)
+
+	// Save original JWT_SECRET and restore after test
+	originalSecret := os.Getenv("JWT_SECRET")
+	defer os.Setenv("JWT_SECRET", originalSecret)
+
+	// Set test secret
+	os.Setenv("JWT_SECRET", "test-secret")
+
+	// Create a token with only read scope
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":   "test-user-id",
+		"scope": "read",
+	})
+	tokenString, err := token.SignedString([]byte("test-secret"))
+	assert.NoError(t, err)
+
+	router := setupRouter()
+	router.Use(tokenVerifier.VerifyToken([]string{"read", "write"}, func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.JSONEq(t, `{"code":"GEN_00005","error":"Missing scope: write"}`, w.Body.String())
 }
 
 func TestVerifyTokenMissingToken(t *testing.T) {
@@ -70,7 +142,7 @@ func TestVerifyTokenMissingToken(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{"read"}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -97,7 +169,7 @@ func TestVerifyTokenInvalidBearerFormat(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{"read"}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -125,7 +197,7 @@ func TestVerifyTokenInvalidJWTToken(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{"read"}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 
@@ -153,7 +225,7 @@ func TestVerifyTokenInvalidClaims(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret")
 
 	router := setupRouter()
-	router.Use(tokenVerifier.VerifyToken([]string{}, func(c *gin.Context) {
+	router.Use(tokenVerifier.VerifyToken([]string{"read"}, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	}))
 

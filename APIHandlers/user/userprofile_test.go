@@ -10,21 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	"netherrealmstudio.com/aishoppercore/m/db"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
+	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
 )
-
-func setUpTestEnv(t *testing.T) (*UserProfileHandler, *db.MySQLConnectionPool) {
-	testDBConn := testutil.SetupTestEnv(t)
-	userProfileHandler := InitializeUserProfileHandler(*testDBConn, apiHandlers.ResponseFactory{})
-	return userProfileHandler, testDBConn
-}
 
 func TestGetUserProfileWithExistingUser(t *testing.T) {
 	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user
-	testUser := db.User{
+	testUser := dbmodel.User{
 		ID:         "test-user-id",
 		Nickname:   "Test User",
 		PostalCode: "A1B2C3",
@@ -38,7 +31,7 @@ func TestGetUserProfileWithExistingUser(t *testing.T) {
 	userProfileHandler.GetUserProfile(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	var response db.User
+	var response dbmodel.User
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, testUser.ID, response.ID)
@@ -84,7 +77,7 @@ func TestCreateUserProfile(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 
 	// Verify user was saved in database
-	var savedUser db.User
+	var savedUser dbmodel.User
 	err := testDBConn.GetDB().First(&savedUser, "id = ?", "new-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, "A1B2C3", savedUser.PostalCode)
@@ -95,7 +88,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	userProfileHandler, testDBConn := setUpTestEnv(t)
 
 	// Create a test user for update tests
-	testUser := db.User{
+	testUser := dbmodel.User{
 		ID:         "test-user-id",
 		Nickname:   "Original Name",
 		PostalCode: "A1B2C3",
@@ -119,7 +112,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 
 	// Verify user was updated in database
-	var savedUser db.User
+	var savedUser dbmodel.User
 	err := testDBConn.GetDB().First(&savedUser, "id = ?", "test-user-id").Error
 	assert.NoError(t, err)
 	assert.Equal(t, strings.ToUpper("B2C3D4"), savedUser.PostalCode)

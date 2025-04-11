@@ -3,13 +3,14 @@ package main
 import (
 	"strings"
 
+	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 	"github.com/kdjuwidja/aishoppercommon/osutil"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	apiHandlersping "netherrealmstudio.com/aishoppercore/m/apiHandlers/ping"
 	apiHandlersshoplist "netherrealmstudio.com/aishoppercore/m/apiHandlers/shoplist"
 	apihandlersuser "netherrealmstudio.com/aishoppercore/m/apiHandlers/user"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,14 @@ import (
 func main() {
 
 	// Initialize database connection
+
+	models := []interface{}{
+		&dbmodel.Shoplist{},
+		&dbmodel.ShoplistItem{},
+		&dbmodel.ShoplistMember{},
+		&dbmodel.ShoplistShareCode{},
+		&dbmodel.User{},
+	}
 	mysqlConn := &db.MySQLConnectionPool{}
 	mysqlConn.Configure(osutil.GetEnvString("AI_SHOPPER_CORE_DB_USER", "ai_shopper_dev"),
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_PASSWORD", "password"),
@@ -25,14 +34,9 @@ func main() {
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_PORT", "3306"),
 		osutil.GetEnvString("AI_SHOPPER_CORE_DB_NAME", "ai_shopper_core"),
 		osutil.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_OPEN_CONNS", 25),
-		osutil.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10))
-
-	// Initialize database connection
-	_, err := db.InitializeMySQLConnPoolSingleton(mysqlConn)
-	if err != nil {
-		logger.Errorf("Failed to initialize database connection: %v", err)
-		panic(err)
-	}
+		osutil.GetEnvInt("AI_SHOPPER_CORE_DB_MAX_IDLE_CONNS", 10),
+		models,
+	)
 	defer mysqlConn.Close()
 
 	// Migrate database
