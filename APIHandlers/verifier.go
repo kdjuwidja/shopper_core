@@ -3,6 +3,8 @@ package apiHandlers
 import (
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -58,6 +60,14 @@ func (v *TokenVerifier) VerifyToken(scopes []string, next gin.HandlerFunc) gin.H
 		}
 
 		// TODO: Check if token has scope
+		jwtScopes := strings.Split(mapClaims["scope"].(string), " ")
+		for _, scope := range scopes {
+			if !slices.Contains(jwtScopes, scope) {
+				v.responseFactory.CreateErrorResponsef(c, ErrInvalidScope, scope)
+				c.Abort()
+				return
+			}
+		}
 
 		// Extract and set user ID
 		if userID, exists := mapClaims["sub"].(string); exists {

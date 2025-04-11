@@ -7,6 +7,7 @@ const (
 	ErrInvalidRequestBody                     = "GEN_00002"
 	ErrMissingRequiredField                   = "GEN_00003"
 	ErrMissingRequiredParam                   = "GEN_00004"
+	ErrInvalidScope                           = "GEN_00005"
 	ErrInternalServerError                    = "GEN_99999"
 	ErrInvalidPostalCode                      = "USR_00001"
 	ErrUserProfileNotFound                    = "USR_00002"
@@ -22,6 +23,7 @@ var responseMap = map[string]response{
 	ErrInvalidRequestBody:                     {ErrInvalidRequestBody, http.StatusBadRequest, "Invalid request body"},
 	ErrMissingRequiredField:                   {ErrMissingRequiredField, http.StatusBadRequest, "Missing field in body: %s"},
 	ErrMissingRequiredParam:                   {ErrMissingRequiredParam, http.StatusBadRequest, "Missing parameter: %s"},
+	ErrInvalidScope:                           {ErrInvalidScope, http.StatusForbidden, "Missing scope: %s"},
 	ErrInvalidPostalCode:                      {ErrInvalidPostalCode, http.StatusBadRequest, "Invalid postal code."},
 	ErrUserProfileNotFound:                    {ErrUserProfileNotFound, http.StatusNotFound, "User profile not found."},
 	ErrShoplistNotFound:                       {ErrShoplistNotFound, http.StatusNotFound, "Shoplist not found."},

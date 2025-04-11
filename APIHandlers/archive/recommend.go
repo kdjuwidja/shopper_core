@@ -1,4 +1,4 @@
-package apiHandlersapiHandlersarchive
+package apiHandlersarchive
 
 import (
 	"bytes"
