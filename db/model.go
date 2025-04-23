@@ -49,3 +49,19 @@ type ShoplistItem struct {
 	ExtraInfo  string   `json:"extra_info" gorm:"type:varchar(100);"`
 	IsBought   bool     `json:"is_bought" gorm:"type:tinyint(1);not null;default:0"`
 }
+
+type Flyer struct {
+	Store          string   `json:"store"`
+	Brand          string   `json:"brand"`
+	ProductName    string   `json:"product_name"`
+	Description    string   `json:"description"`
+	DisclaimerText string   `json:"disclaimer_text"`
+	ImageURL       string   `json:"image_url"`
+	Images         []string `json:"images"`
+	OriginalPrice  int      `json:"original_price"`
+	PrePriceText   string   `json:"pre_price_text"`
+	PriceText      string   `json:"price_text"`
+	PostPriceText  string   `json:"post_price_text"`
+	StartDateTime  int64    `json:"start_date"`
+	EndDateTime    int64    `json:"end_date"`
+}

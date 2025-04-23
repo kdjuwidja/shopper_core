@@ -4,10 +4,12 @@ import (
 	"strings"
 
 	"github.com/kdjuwidja/aishoppercommon/db"
+	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 	"github.com/kdjuwidja/aishoppercommon/osutil"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
 	apiHandlersping "netherrealmstudio.com/aishoppercore/m/apiHandlers/ping"
+	apiHandlerssearch "netherrealmstudio.com/aishoppercore/m/apiHandlers/search"
 	apiHandlersshoplist "netherrealmstudio.com/aishoppercore/m/apiHandlers/shoplist"
 	apihandlersuser "netherrealmstudio.com/aishoppercore/m/apiHandlers/user"
 	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
@@ -41,6 +43,11 @@ func main() {
 	}
 	defer mysqlConn.Close()
 
+	esc, err := elasticsearch.NewElasticsearchClient(osutil.GetEnvString("ELASTICSEARCH_HOST", "localhost"), osutil.GetEnvString("ELASTICSEARCH_PORT", "9200"))
+	if err != nil {
+		logger.Fatalf("Failed to initialize Elasticsearch client: %v", err)
+	}
+
 	// Migrate database
 	logger.Info("Migrating database...")
 	mysqlConn.AutoMigrate()
@@ -71,6 +78,7 @@ func main() {
 	// Initialize API Handlers
 	userProfileHandler := apihandlersuser.InitializeUserProfileHandler(*mysqlConn, *rf)
 	shoplistHandler := apiHandlersshoplist.InitializeShoplistHandler(*mysqlConn, *rf)
+	searchHandler := apiHandlerssearch.InitializeSearchHandler(esc, *rf)
 
 	r.GET("/ping", apiHandlersping.Ping)
 	r.GET("/v1/user", tokenVerifier.VerifyToken([]string{"profile"}, userProfileHandler.GetUserProfile))
@@ -86,6 +94,7 @@ func main() {
 	r.PUT("/v1/shoplist/:id/item", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.AddItemToShopList))
 	r.DELETE("/v1/shoplist/:id/item/:itemId", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RemoveItemFromShopList))
 	r.POST("/v1/shoplist/:id/item/:itemId", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplistItem))
+	r.GET("/v1/search/flyers", tokenVerifier.VerifyToken([]string{"search"}, searchHandler.SearchFlyers))
 
 	logger.Info("Starting server on port 8080")
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")

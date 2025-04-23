@@ -1,0 +1,41 @@
+package bizsearch
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
+	"netherrealmstudio.com/aishoppercore/m/db"
+)
+
+type SearchFlyerBiz struct {
+	esc *elasticsearch.ElasticsearchClient
+}
+
+func NewSearchFlyerBiz(esc *elasticsearch.ElasticsearchClient) *SearchFlyerBiz {
+	return &SearchFlyerBiz{
+		esc: esc,
+	}
+}
+
+func (s *SearchFlyerBiz) SearchFlyers(ctx context.Context, product_name string) ([]*db.Flyer, error) {
+	startOfToday := time.Now().Truncate(24 * time.Hour).Unix()
+	endOfToday := startOfToday + 86400
+	query := newSearchQuery(product_name, startOfToday, endOfToday)
+	results, err := s.esc.SearchDocuments(ctx, "flyers", query)
+	if err != nil {
+		return nil, err
+	}
+
+	flyers := make([]*db.Flyer, len(results))
+	for i, result := range results {
+		var flyer db.Flyer
+		if err := json.Unmarshal(result, &flyer); err != nil {
+			return nil, err
+		}
+		flyers[i] = &flyer
+	}
+
+	return flyers, nil
+}
