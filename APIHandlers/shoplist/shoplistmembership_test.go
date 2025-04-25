@@ -2,6 +2,7 @@ package apiHandlersshoplist
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
@@ -771,4 +773,93 @@ func TestRequestShopListShareCodeNonExistent(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"code": "SHP_00001", "error": "Shoplist not found.",
 	}, response)
+}
+
+func TestLeaveShopListOwnerWithShareCode(t *testing.T) {
+	// Setup test database
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
+	// Create test user
+	owner := db.User{
+		ID:         "owner-123",
+		PostalCode: "238801",
+	}
+	err := testConn.GetDB().Create(&owner).Error
+	assert.NoError(t, err)
+
+	// Create test shoplist
+	testShoplist := db.Shoplist{
+		ID:      1,
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist",
+	}
+	err = testConn.GetDB().Create(&testShoplist).Error
+	assert.NoError(t, err)
+
+	// Add owner as member to shoplist
+	ownerMember := db.ShoplistMember{
+		ID:         1,
+		ShopListID: testShoplist.ID,
+		MemberID:   owner.ID,
+	}
+	err = testConn.GetDB().Create(&ownerMember).Error
+	assert.NoError(t, err)
+
+	// Create share code for the shoplist
+	shareCode := db.ShoplistShareCode{
+		ID:         1,
+		ShopListID: testShoplist.ID,
+		Code:       "TEST12",
+		Expiry:     time.Now().Add(24 * time.Hour),
+	}
+	err = testConn.GetDB().Create(&shareCode).Error
+	assert.NoError(t, err)
+
+	// Setup Gin router
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
+
+	// Create request
+	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(testShoplist.ID)+"/leave", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+
+	// Create response recorder
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("userID", owner.ID)
+	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(testShoplist.ID)}}
+
+	shoplistHandler.LeaveShopList(c)
+
+	// Assert response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{}, response)
+
+	// Verify member is removed from shoplist
+	var memberCount int64
+	err = testConn.GetDB().Model(&db.ShoplistMember{}).
+		Where("shop_list_id = ? AND member_id = ?", testShoplist.ID, owner.ID).
+		Count(&memberCount).Error
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), memberCount, "Member should be removed from shoplist")
+
+	// Verify shoplist is deleted since owner was the last member
+	var shoplist db.Shoplist
+	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound), "Shoplist should be deleted")
+
+	// Verify share code is deleted
+	var shareCodeCount int64
+	err = testConn.GetDB().Model(&db.ShoplistShareCode{}).
+		Where("shop_list_id = ?", testShoplist.ID).
+		Count(&shareCodeCount).Error
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), shareCodeCount, "Share code should be deleted")
 }

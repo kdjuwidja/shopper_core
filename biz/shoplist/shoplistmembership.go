@@ -28,6 +28,11 @@ func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistErro
 				return err
 			}
 
+			// Delete any share code record for the shoplist
+			if err := tx.Where("shop_list_id = ?", shoplistID).Unscoped().Delete(&db.ShoplistShareCode{}).Error; err != nil {
+				return err
+			}
+
 			// Then delete the shoplist
 			if err := tx.Unscoped().Delete(&db.Shoplist{}, shoplistID).Error; err != nil {
 				return err
