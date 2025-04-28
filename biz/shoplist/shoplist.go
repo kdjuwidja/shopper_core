@@ -1,6 +1,8 @@
 package bizshoplist
 
 import (
+	"sort"
+
 	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
@@ -115,9 +117,9 @@ func (b *ShoplistBiz) GetAllShoplists(userID string) ([]GetAllShoplistData, *Sho
 }
 
 // GetShoplist retrieves a shoplist by ID
-func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) ([]GetShoplistData, *ShoplistError) {
+func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []ShoplistItem, []ShoplistMember, *ShoplistError) {
 	if !b.checkShoplistMembershipFromDB(userID, shoplistID) {
-		return nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
+		return nil, nil, nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
 
 	rows, err := b.dbPool.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, member_id, member_nickname FROM shoplists
@@ -125,22 +127,66 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) ([]GetShoplistD
 		LEFT JOIN (SELECT shop_list_id, member_id, nickname as member_nickname from shoplist_members left join users on shoplist_members.member_id = users.id) as tbl1 ON tbl1.shop_list_id = shoplists.id
 		where shoplists.id = ?;`, shoplistID).Rows()
 	if err != nil {
-		return nil, NewShoplistError(ShoplistNotFound, err.Error())
+		return nil, nil, nil, NewShoplistError(ShoplistNotFound, err.Error())
 	}
 	defer rows.Close()
 
-	var premassage_resps []GetShoplistData
+	var shoplistData Shoplist
+	itemMap := make(map[int]ShoplistItem)
+	itemIdList := make([]int, 0)
+	memberMap := make(map[string]ShoplistMember)
+	memberIdList := make([]string, 0)
+
 	for rows.Next() {
 		var r GetShoplistData
 		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListMemberID, &r.ShopListMemberNickname)
 		if err != nil {
-			return nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
+			return nil, nil, nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
 		}
 
-		premassage_resps = append(premassage_resps, r)
+		shoplistData.ID = r.ID
+		shoplistData.Name = r.Name
+		shoplistData.OwnerID = r.OwnerId
+
+		// Item can be nil if the shoplist is empty
+		if r.ShopListItemID != nil {
+			if _, exists := itemMap[*r.ShopListItemID]; !exists {
+				itemMap[*r.ShopListItemID] = ShoplistItem{
+					ID:        *r.ShopListItemID,
+					ItemName:  *r.ShopListItemName,
+					BrandName: *r.ShopListItemBrandName,
+					ExtraInfo: *r.ShopListItemExtraInfo,
+					IsBought:  *r.ShopListItemIsBought,
+				}
+				itemIdList = append(itemIdList, *r.ShopListItemID)
+			}
+		}
+
+		// At least the owner should be in the member list, so we don't need to check if the member exists
+		if _, exists := memberMap[r.ShopListMemberID]; !exists {
+			memberMap[r.ShopListMemberID] = ShoplistMember{
+				ID:       r.ShopListMemberID,
+				Nickname: r.ShopListMemberNickname,
+			}
+			memberIdList = append(memberIdList, r.ShopListMemberID)
+		}
 	}
 
-	return premassage_resps, nil
+	shoplistData.OwnerNickname = memberMap[shoplistData.OwnerID].Nickname
+	// Convert the map to slices
+	items := make([]ShoplistItem, 0, len(itemMap))
+	sort.Ints(itemIdList)
+	for _, itemId := range itemIdList {
+		items = append(items, itemMap[itemId])
+	}
+
+	members := make([]ShoplistMember, 0, len(memberMap))
+	sort.Strings(memberIdList)
+	for _, memberId := range memberIdList {
+		members = append(members, memberMap[memberId])
+	}
+
+	return &shoplistData, items, members, nil
 }
 
 // UpdateShoplist updates a shoplist's name

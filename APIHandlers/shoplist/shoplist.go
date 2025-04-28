@@ -152,7 +152,7 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		return
 	}
 
-	shoplistData, shoplistErr := h.shoplistBiz.GetShoplist(userID, shoplistID)
+	shoplistData, shoplistItems, shoplistMembers, shoplistErr := h.shoplistBiz.GetShoplist(userID, shoplistID)
 	if shoplistErr != nil {
 		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
 			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
@@ -164,8 +164,8 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 	}
 
 	// massage response data into expected format
-	if len(shoplistData) == 0 {
-		logger.Errorf("GetShoplist: len(shoplistData) == 0, shoplistId: %d", shoplistID)
+	if shoplistData == nil {
+		logger.Errorf("GetShoplist: shoplistData == nil, shoplistId: %d", shoplistID)
 		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return
 	}
@@ -190,76 +190,18 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		} `json:"items"`
 	}
 
-	response := ResponseModel{}
-	shoplistMembers := make(map[string]struct {
-		ID       string `json:"id"`
-		Nickname string `json:"nickname"`
-	})
-
-	shoplistItems := make(map[int]struct {
-		ID        int    `json:"id"`
-		ItemName  string `json:"item_name"`
-		BrandName string `json:"brand_name"`
-		ExtraInfo string `json:"extra_info"`
-		IsBought  bool   `json:"is_bought"`
-	})
-
-	for _, r := range shoplistData {
-		if response.ID == 0 {
-			response.ID = r.ID
-		}
-		if response.Name == "" {
-			response.Name = r.Name
-		}
-		if response.Owner.ID == "" {
-			response.Owner.ID = r.OwnerId
-		}
-
-		if r.ShopListMemberID != "" {
-			if _, exists := shoplistMembers[r.ShopListMemberID]; !exists {
-				shoplistMembers[r.ShopListMemberID] = struct {
-					ID       string `json:"id"`
-					Nickname string `json:"nickname"`
-				}{
-					ID:       r.ShopListMemberID,
-					Nickname: r.ShopListMemberNickname,
-				}
-
-				if response.Owner.ID == r.ShopListMemberID {
-					response.Owner.Nickname = r.ShopListMemberNickname
-				}
-			}
-		}
-
-		if r.ShopListItemID != nil {
-			if _, exists := shoplistItems[*r.ShopListItemID]; !exists {
-				shoplistItems[*r.ShopListItemID] = struct {
-					ID        int    `json:"id"`
-					ItemName  string `json:"item_name"`
-					BrandName string `json:"brand_name"`
-					ExtraInfo string `json:"extra_info"`
-					IsBought  bool   `json:"is_bought"`
-				}{
-					ID:        *r.ShopListItemID,
-					ItemName:  *r.ShopListItemName,
-					BrandName: *r.ShopListItemBrandName,
-					ExtraInfo: *r.ShopListItemExtraInfo,
-					IsBought:  *r.ShopListItemIsBought,
-				}
-			}
-		}
-	}
-
-	// convert map to slice
-	response.Members = make([]struct {
-		ID       string `json:"id"`
-		Nickname string `json:"nickname"`
+	responseMembers := make([]struct {
+		ID       string "json:\"id\""
+		Nickname string "json:\"nickname\""
 	}, 0)
 	for _, member := range shoplistMembers {
-		response.Members = append(response.Members, member)
+		responseMembers = append(responseMembers, struct {
+			ID       string `json:"id"`
+			Nickname string `json:"nickname"`
+		}{ID: member.ID, Nickname: member.Nickname})
 	}
 
-	response.Items = make([]struct {
+	responseItems := make([]struct {
 		ID        int    `json:"id"`
 		ItemName  string `json:"item_name"`
 		BrandName string `json:"brand_name"`
@@ -267,9 +209,34 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		IsBought  bool   `json:"is_bought"`
 	}, 0)
 	for _, item := range shoplistItems {
-		response.Items = append(response.Items, item)
+		responseItems = append(responseItems, struct {
+			ID        int    `json:"id"`
+			ItemName  string `json:"item_name"`
+			BrandName string `json:"brand_name"`
+			ExtraInfo string `json:"extra_info"`
+			IsBought  bool   `json:"is_bought"`
+		}{
+			ID:        item.ID,
+			ItemName:  item.ItemName,
+			BrandName: item.BrandName,
+			ExtraInfo: item.ExtraInfo,
+			IsBought:  item.IsBought,
+		})
 	}
 
+	response := ResponseModel{
+		ID:   shoplistData.ID,
+		Name: shoplistData.Name,
+		Owner: struct {
+			ID       string `json:"id"`
+			Nickname string `json:"nickname"`
+		}{
+			ID:       shoplistData.OwnerID,
+			Nickname: shoplistData.OwnerNickname,
+		},
+		Members: responseMembers,
+		Items:   responseItems,
+	}
 	h.responseFactory.CreateOKResponse(c, response)
 }
 

@@ -1,0 +1,21 @@
+package bizshoplist
+
+type ShoplistItem struct {
+	ID        int
+	ItemName  string
+	BrandName string
+	ExtraInfo string
+	IsBought  bool
+}
+
+type ShoplistMember struct {
+	ID       string
+	Nickname string
+}
+
+type Shoplist struct {
+	ID            int
+	Name          string
+	OwnerID       string
+	OwnerNickname string
+}
