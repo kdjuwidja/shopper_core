@@ -49,13 +49,14 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 		ItemName  string `json:"item_name" binding:"required"`
 		BrandName string `json:"brand_name"`
 		ExtraInfo string `json:"extra_info"`
+		Thumbnail string `json:"thumbnail"`
 	}
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredField, "item_name")
 		return
 	}
 
-	newItem, shoplistErr := h.shoplistBiz.AddItemToShopList(userID, shoplistID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo)
+	newItem, shoplistErr := h.shoplistBiz.AddItemToShopList(userID, shoplistID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.Thumbnail)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -79,6 +80,7 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 		"brand_name": newItem.BrandName,
 		"extra_info": newItem.ExtraInfo,
 		"is_bought":  newItem.IsBought,
+		"thumbnail":  newItem.Thumbnail,
 	}
 
 	h.responseFactory.CreateCreatedResponse(c, respData)

@@ -5,6 +5,7 @@ type ShoplistItem struct {
 	ItemName  string
 	BrandName string
 	ExtraInfo string
+	Thumbnail string
 	IsBought  bool
 }
 

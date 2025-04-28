@@ -48,6 +48,7 @@ type ShoplistItem struct {
 	BrandName  string   `json:"brand_name" gorm:"type:varchar(100);not null"`
 	ExtraInfo  string   `json:"extra_info" gorm:"type:varchar(100);"`
 	IsBought   bool     `json:"is_bought" gorm:"type:tinyint(1);not null;default:0"`
+	Thumbnail  string   `json:"thumbnail" gorm:"type:varchar(255);default:''"`
 }
 
 type Flyer struct {

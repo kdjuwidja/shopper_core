@@ -5,7 +5,7 @@ import (
 	"netherrealmstudio.com/aishoppercore/m/db"
 )
 
-func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName string, brandName string, extraInfo string) (*db.ShoplistItem, *ShoplistError) {
+func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName string, brandName string, extraInfo string, thumbnail string) (*db.ShoplistItem, *ShoplistError) {
 	if !b.checkShoplistMembershipFromDB(userID, shoplistID) {
 		return nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
@@ -17,6 +17,7 @@ func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName 
 		BrandName:  brandName,
 		ExtraInfo:  extraInfo,
 		IsBought:   false,
+		Thumbnail:  thumbnail,
 	}
 
 	// check if item name is empty

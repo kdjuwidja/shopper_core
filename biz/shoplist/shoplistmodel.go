@@ -41,6 +41,7 @@ type GetShoplistData struct {
 	ShopListItemBrandName  *string `json:"brand_name" gorm:"column:brand_name"`
 	ShopListItemExtraInfo  *string `json:"extra_info" gorm:"column:extra_info"`
 	ShopListItemIsBought   *bool   `json:"is_bought" gorm:"column:is_bought"`
+	ShopListItemThumbnail  *string `json:"thumbnail" gorm:"column:thumbnail"`
 	ShopListMemberID       string  `json:"member_id" gorm:"column:member_id"`
 	ShopListMemberNickname string  `json:"member_nickname" gorm:"column:member_nickname"`
 }

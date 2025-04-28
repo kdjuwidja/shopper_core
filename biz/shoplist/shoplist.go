@@ -122,7 +122,7 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 		return nil, nil, nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
 
-	rows, err := b.dbPool.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, member_id, member_nickname FROM shoplists
+	rows, err := b.dbPool.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, thumbnail, member_id, member_nickname FROM shoplists
 		LEFT JOIN shoplist_items on shoplist_items.shop_list_id = shoplists.id
 		LEFT JOIN (SELECT shop_list_id, member_id, nickname as member_nickname from shoplist_members left join users on shoplist_members.member_id = users.id) as tbl1 ON tbl1.shop_list_id = shoplists.id
 		where shoplists.id = ?;`, shoplistID).Rows()
@@ -139,7 +139,7 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 
 	for rows.Next() {
 		var r GetShoplistData
-		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListMemberID, &r.ShopListMemberNickname)
+		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListItemThumbnail, &r.ShopListMemberID, &r.ShopListMemberNickname)
 		if err != nil {
 			return nil, nil, nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
 		}
@@ -157,6 +157,7 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 					BrandName: *r.ShopListItemBrandName,
 					ExtraInfo: *r.ShopListItemExtraInfo,
 					IsBought:  *r.ShopListItemIsBought,
+					Thumbnail: *r.ShopListItemThumbnail,
 				}
 				itemIdList = append(itemIdList, *r.ShopListItemID)
 			}

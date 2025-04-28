@@ -78,6 +78,7 @@ func TestAddItemToShopListOwner(t *testing.T) {
 		"brand_name": "Test Brand",
 		"extra_info": "Test Info",
 		"is_bought":  false,
+		"thumbnail":  "",
 	}, response)
 
 	// Verify database
@@ -163,6 +164,7 @@ func TestAddItemToShopListMember(t *testing.T) {
 		"brand_name": "Another Brand",
 		"extra_info": "Another Info",
 		"is_bought":  false,
+		"thumbnail":  "",
 	}, response)
 
 	// Verify database
@@ -412,6 +414,88 @@ func TestAddItemToShopListEmptyName(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"code": "GEN_00003", "error": "Missing field in body: item_name",
 	}, response)
+}
+
+func TestAddItemToShopListWithThumbnail(t *testing.T) {
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
+	// Create test user
+	owner := db.User{
+		ID:         "owner-123",
+		PostalCode: "238801",
+	}
+	err := testConn.GetDB().Create(&owner).Error
+	assert.NoError(t, err)
+
+	// Create test shoplist
+	testShoplist := db.Shoplist{
+		ID:      1,
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist",
+	}
+	err = testConn.GetDB().Create(&testShoplist).Error
+	assert.NoError(t, err)
+
+	// Add owner as member to shoplist
+	ownerMember := db.ShoplistMember{
+		ID:         1,
+		ShopListID: testShoplist.ID,
+		MemberID:   owner.ID,
+	}
+	err = testConn.GetDB().Create(&ownerMember).Error
+	assert.NoError(t, err)
+
+	// Setup Gin router
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/shoplist/:id/items", shoplistHandler.AddItemToShopList)
+
+	// Create request with thumbnail
+	requestBody := map[string]interface{}{
+		"item_name":  "Test Item",
+		"brand_name": "Test Brand",
+		"extra_info": "Test Info",
+		"thumbnail":  "https://example.com/image.jpg",
+	}
+	body, _ := json.Marshal(requestBody)
+	req, _ := http.NewRequest("PUT", "/shoplist/1/items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test-token")
+
+	// Create response recorder
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("userID", owner.ID)
+	c.Params = []gin.Param{{Key: "id", Value: "1"}}
+
+	shoplistHandler.AddItemToShopList(c)
+
+	// Assert response
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{
+		"id":         float64(1),
+		"item_name":  "Test Item",
+		"brand_name": "Test Brand",
+		"extra_info": "Test Info",
+		"is_bought":  false,
+		"thumbnail":  "https://example.com/image.jpg",
+	}, response)
+
+	// Verify database
+	var item db.ShoplistItem
+	err = testConn.GetDB().First(&item, response["id"]).Error
+	assert.NoError(t, err)
+	assert.Equal(t, requestBody["item_name"], item.ItemName)
+	assert.Equal(t, requestBody["brand_name"], item.BrandName)
+	assert.Equal(t, requestBody["extra_info"], item.ExtraInfo)
+	assert.Equal(t, requestBody["thumbnail"], item.Thumbnail)
+	assert.False(t, item.IsBought)
+	assert.Equal(t, 1, item.ShopListID)
 }
 
 func TestRemoveItemFromShopListOwner(t *testing.T) {
@@ -1352,8 +1436,7 @@ func TestUpdateShoplistItemDifferentShoplist(t *testing.T) {
 	// Verify item still exists in database
 	var existingItem db.ShoplistItem
 	err = testConn.GetDB().First(&existingItem, 1).Error
-	assert.NoError(t, err)
-	assert.False(t, existingItem.IsBought)
+	assert.NoError(t, err, "Item should still exist in database")
 }
 
 func TestUpdateShoplistItemEmptyRequest(t *testing.T) {

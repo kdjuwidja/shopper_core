@@ -187,6 +187,7 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 			BrandName string `json:"brand_name"`
 			ExtraInfo string `json:"extra_info"`
 			IsBought  bool   `json:"is_bought"`
+			Thumbnail string `json:"thumbnail"`
 		} `json:"items"`
 	}
 
@@ -207,6 +208,7 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		BrandName string `json:"brand_name"`
 		ExtraInfo string `json:"extra_info"`
 		IsBought  bool   `json:"is_bought"`
+		Thumbnail string `json:"thumbnail"`
 	}, 0)
 	for _, item := range shoplistItems {
 		responseItems = append(responseItems, struct {
@@ -215,12 +217,14 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 			BrandName string `json:"brand_name"`
 			ExtraInfo string `json:"extra_info"`
 			IsBought  bool   `json:"is_bought"`
+			Thumbnail string `json:"thumbnail"`
 		}{
 			ID:        item.ID,
 			ItemName:  item.ItemName,
 			BrandName: item.BrandName,
 			ExtraInfo: item.ExtraInfo,
 			IsBought:  item.IsBought,
+			Thumbnail: item.Thumbnail,
 		})
 	}
 
