@@ -54,6 +54,9 @@ func main() {
 	logger.Info("Database migrated successfully")
 
 	r := gin.Default()
+	trustProxiesConf := osutil.GetEnvString("TRUST_PROXIES", "127.0.0.1")
+	trustProxies := strings.Split(trustProxiesConf, ",")
+	r.SetTrustedProxies(trustProxies)
 
 	// CORS configuration
 	corsConfig := cors.DefaultConfig()
