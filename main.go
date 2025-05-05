@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/kdjuwidja/aishoppercommon/db"
@@ -8,7 +9,7 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/logger"
 	"github.com/kdjuwidja/aishoppercommon/osutil"
 	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	apiHandlersping "netherrealmstudio.com/aishoppercore/m/apiHandlers/ping"
+	apiHandlersHealth "netherrealmstudio.com/aishoppercore/m/apiHandlers/health"
 	apiHandlerssearch "netherrealmstudio.com/aishoppercore/m/apiHandlers/search"
 	apiHandlersshoplist "netherrealmstudio.com/aishoppercore/m/apiHandlers/shoplist"
 	apihandlersuser "netherrealmstudio.com/aishoppercore/m/apiHandlers/user"
@@ -79,27 +80,33 @@ func main() {
 	tokenVerifier := apiHandlers.InitializeTokenVerifier(*rf)
 
 	// Initialize API Handlers
+	healthHandler := apiHandlersHealth.InitializeHealthHandler()
 	userProfileHandler := apihandlersuser.InitializeUserProfileHandler(*mysqlConn, *rf)
 	shoplistHandler := apiHandlersshoplist.InitializeShoplistHandler(*mysqlConn, *rf)
 	searchHandler := apiHandlerssearch.InitializeSearchHandler(esc, *rf)
 
-	r.GET("/ping", apiHandlersping.Ping)
-	r.GET("/v1/user", tokenVerifier.VerifyToken([]string{"profile"}, userProfileHandler.GetUserProfile))
-	r.POST("/v1/user", tokenVerifier.VerifyToken([]string{"profile"}, userProfileHandler.CreateOrUpdateUserProfile))
-	r.PUT("/v1/shoplist", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.CreateShoplist))
-	r.GET("/v1/shoplist", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetAllShoplists))
-	r.GET("/v1/shoplist/:id", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplist))
-	r.POST("/v1/shoplist/:id", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplist))
-	r.POST("/v1/shoplist/:id/leave", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.LeaveShopList))
-	r.POST("/v1/shoplist/:id/share-code", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RequestShopListShareCode))
-	r.POST("/v1/shoplist/:id/share-code/revoke", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RevokeShopListShareCode))
-	r.POST("/v1/shoplist/join", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.JoinShopList))
-	r.PUT("/v1/shoplist/:id/item", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.AddItemToShopList))
-	r.DELETE("/v1/shoplist/:id/item/:itemId", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RemoveItemFromShopList))
-	r.POST("/v1/shoplist/:id/item/:itemId", tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplistItem))
-	r.GET("/v1/search/flyers", tokenVerifier.VerifyToken([]string{"search"}, searchHandler.SearchFlyers))
+	serviceName := osutil.GetEnvString("SERVICE_NAME", "core")
+
+	r.GET(getRoute(serviceName, "/health"), healthHandler.Health)
+	r.GET(getRoute(serviceName, "/v1/user"), tokenVerifier.VerifyToken([]string{"profile"}, userProfileHandler.GetUserProfile))
+	r.POST(getRoute(serviceName, "/v1/user"), tokenVerifier.VerifyToken([]string{"profile"}, userProfileHandler.CreateOrUpdateUserProfile))
+	r.PUT(getRoute(serviceName, "/v1/shoplist"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.CreateShoplist))
+	r.GET(getRoute(serviceName, "/v1/shoplist"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetAllShoplists))
+	r.GET(getRoute(serviceName, "/v1/shoplist/:id"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplist))
+	r.POST(getRoute(serviceName, "/v1/shoplist/:id"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplist))
+	r.POST(getRoute(serviceName, "/v1/shoplist/:id/leave"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.LeaveShopList))
+	r.POST(getRoute(serviceName, "/v1/shoplist/:id/share-code"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RequestShopListShareCode))
+	r.POST(getRoute(serviceName, "/v1/shoplist/:id/share-code/revoke"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RevokeShopListShareCode))
+	r.POST(getRoute(serviceName, "/v1/shoplist/join"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.JoinShopList))
+	r.PUT(getRoute(serviceName, "/v1/shoplist/:id/item"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.AddItemToShopList))
+	r.DELETE(getRoute(serviceName, "/v1/shoplist/:id/item/:itemId"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RemoveItemFromShopList))
+	r.POST(getRoute(serviceName, "/v1/shoplist/:id/item/:itemId"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplistItem))
+	r.GET(getRoute(serviceName, "/v1/search/flyers"), tokenVerifier.VerifyToken([]string{"search"}, searchHandler.SearchFlyers))
 
 	logger.Info("Starting server on port 8080")
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+}
 
+func getRoute(serviceName string, route string) string {
+	return fmt.Sprintf("/%s%s", serviceName, route)
 }
