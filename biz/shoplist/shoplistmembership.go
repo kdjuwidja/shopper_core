@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistError {

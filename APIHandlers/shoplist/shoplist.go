@@ -8,8 +8,8 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	bizshoplist "netherealmstudio.com/m/v2/biz/shoplist"
 )
 
 type ShoplistHandler struct {

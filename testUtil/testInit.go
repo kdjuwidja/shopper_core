@@ -5,7 +5,7 @@ import (
 
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
-	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
+	dbmodel "netherealmstudio.com/m/v2/db"
 )
 
 // SetupTestDB initializes a test database and migrates the schema

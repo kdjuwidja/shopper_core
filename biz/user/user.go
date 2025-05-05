@@ -3,7 +3,7 @@ package bizuser
 import (
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"gorm.io/gorm/clause"
-	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
+	dbmodel "netherealmstudio.com/m/v2/db"
 )
 
 type UserBiz struct {

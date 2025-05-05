@@ -2,7 +2,7 @@ package bizshoplist
 
 import (
 	"gorm.io/gorm"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 func (b *ShoplistBiz) AddItemToShopList(userID string, shoplistID int, itemName string, brandName string, extraInfo string, thumbnail string) (*db.ShoplistItem, *ShoplistError) {

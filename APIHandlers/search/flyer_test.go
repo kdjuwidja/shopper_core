@@ -12,9 +12,9 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	bizsearch "netherrealmstudio.com/aishoppercore/m/biz/search"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	bizsearch "netherealmstudio.com/m/v2/biz/search"
+	"netherealmstudio.com/m/v2/db"
 )
 
 func TestSearchFlyers(t *testing.T) {

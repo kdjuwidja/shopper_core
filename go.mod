@@ -1,4 +1,4 @@
-module netherrealmstudio.com/aishoppercore/m
+module netherealmstudio.com/m/v2
 
 go 1.24.0
 

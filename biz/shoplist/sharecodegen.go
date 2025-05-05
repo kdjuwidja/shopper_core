@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 // generateShareCode creates a random alphanumeric code of specified length

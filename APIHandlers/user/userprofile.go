@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	bizuser "netherrealmstudio.com/aishoppercore/m/biz/user"
-	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	bizuser "netherealmstudio.com/m/v2/biz/user"
+	dbmodel "netherealmstudio.com/m/v2/db"
 )
 
 // UserProfileHandler dependencies

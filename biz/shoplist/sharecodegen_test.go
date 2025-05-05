@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"netherrealmstudio.com/aishoppercore/m/db"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
+	"netherealmstudio.com/m/v2/db"
+	testutil "netherealmstudio.com/m/v2/testUtil"
 )
 
 func TestShareCodeGen(t *testing.T) {

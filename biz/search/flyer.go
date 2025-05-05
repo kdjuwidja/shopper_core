@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 type SearchFlyerBiz struct {

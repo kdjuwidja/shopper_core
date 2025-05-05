@@ -8,7 +8,7 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 func TestSearchFlyers(t *testing.T) {

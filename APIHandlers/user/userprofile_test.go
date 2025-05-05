@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	dbmodel "netherealmstudio.com/m/v2/db"
 )
 
 func TestGetUserProfileWithExistingUser(t *testing.T) {

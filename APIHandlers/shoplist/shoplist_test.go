@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	dbmodel "netherrealmstudio.com/aishoppercore/m/db"
+	dbmodel "netherealmstudio.com/m/v2/db"
 )
 
 func TestCreateShoplistValid(t *testing.T) {

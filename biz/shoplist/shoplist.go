@@ -3,7 +3,7 @@ package bizshoplist
 import (
 	"sort"
 
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/db"
 )
 
 // checkShoplistMembership checks if a user is a member of a shoplist

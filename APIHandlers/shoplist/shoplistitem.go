@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kdjuwidja/aishoppercommon/logger"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	bizshoplist "netherrealmstudio.com/aishoppercore/m/biz/shoplist"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	bizshoplist "netherealmstudio.com/m/v2/biz/shoplist"
 )
 
 // AddItemToShopList adds a new item to a shoplist

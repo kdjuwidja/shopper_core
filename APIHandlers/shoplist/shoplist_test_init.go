@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/kdjuwidja/aishoppercommon/db"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	testutil "netherrealmstudio.com/aishoppercore/m/testUtil"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	testutil "netherealmstudio.com/m/v2/testUtil"
 )
 
 func setUpShoplistTestEnv(t *testing.T) (*ShoplistHandler, *db.MySQLConnectionPool) {

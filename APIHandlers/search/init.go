@@ -2,8 +2,8 @@ package apiHandlerssearch
 
 import (
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	bizsearch "netherrealmstudio.com/aishoppercore/m/biz/search"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	bizsearch "netherealmstudio.com/m/v2/biz/search"
 )
 
 type SearchHandler struct {

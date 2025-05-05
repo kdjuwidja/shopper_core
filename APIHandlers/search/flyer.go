@@ -3,8 +3,8 @@ package apiHandlerssearch
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/kdjuwidja/aishoppercommon/logger"
-	"netherrealmstudio.com/aishoppercore/m/apiHandlers"
-	"netherrealmstudio.com/aishoppercore/m/db"
+	"netherealmstudio.com/m/v2/apiHandlers"
+	"netherealmstudio.com/m/v2/db"
 )
 
 func (h *SearchHandler) SearchFlyers(c *gin.Context) {
