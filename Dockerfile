@@ -4,9 +4,6 @@ FROM golang:1.24.0
 # Set working directory
 WORKDIR /app
 
-# Set GOPRIVATE for direct GitHub access
-ENV GOPRIVATE=github.com/kdjuwidja/*
-
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
