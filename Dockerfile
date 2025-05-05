@@ -1,5 +1,5 @@
 # Use official Golang image as base
-FROM golang:1.24.0
+FROM golang:1.24.0 AS go-builder
 
 # Set working directory
 WORKDIR /app
@@ -14,7 +14,13 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go mod tidy && go build -o main .
+RUN GOOS=linux go build -o main .
+
+FROM golang:1.24.0
+
+WORKDIR /app
+# Copy the built go binary
+COPY --from=go-builder /app/main .
 
 # Expose port 8080
 EXPOSE 8080
