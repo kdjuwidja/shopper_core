@@ -33,6 +33,11 @@ func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistErro
 				return err
 			}
 
+			// Delete any items for the shoplist
+			if err := tx.Where("shop_list_id = ?", shoplistID).Unscoped().Delete(&db.ShoplistItem{}).Error; err != nil {
+				return err
+			}
+
 			// Then delete the shoplist
 			if err := tx.Unscoped().Delete(&db.Shoplist{}, shoplistID).Error; err != nil {
 				return err

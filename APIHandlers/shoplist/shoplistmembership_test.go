@@ -863,3 +863,106 @@ func TestLeaveShopListOwnerWithShareCode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), shareCodeCount, "Share code should be deleted")
 }
+
+func TestLeaveShopListOwnerWithItems(t *testing.T) {
+	// Setup test database
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
+	// Create test user
+	owner := db.User{
+		ID:         "owner-123",
+		PostalCode: "238801",
+	}
+	err := testConn.GetDB().Create(&owner).Error
+	assert.NoError(t, err)
+
+	// Create test shoplist
+	testShoplist := db.Shoplist{
+		ID:      1,
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist",
+	}
+	err = testConn.GetDB().Create(&testShoplist).Error
+	assert.NoError(t, err)
+
+	// Add owner as member to shoplist
+	ownerMember := db.ShoplistMember{
+		ID:         1,
+		ShopListID: testShoplist.ID,
+		MemberID:   owner.ID,
+	}
+	err = testConn.GetDB().Create(&ownerMember).Error
+	assert.NoError(t, err)
+
+	// Add items to the shoplist
+	item1 := db.ShoplistItem{
+		ID:         1,
+		ShopListID: testShoplist.ID,
+		ItemName:   "Test Item 1",
+		BrandName:  "Test Brand 1",
+		ExtraInfo:  "Test Info 1",
+		IsBought:   false,
+		Thumbnail:  "",
+	}
+	item2 := db.ShoplistItem{
+		ID:         2,
+		ShopListID: testShoplist.ID,
+		ItemName:   "Test Item 2",
+		BrandName:  "Test Brand 2",
+		ExtraInfo:  "Test Info 2",
+		IsBought:   false,
+		Thumbnail:  "",
+	}
+	err = testConn.GetDB().Create(&item1).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&item2).Error
+	assert.NoError(t, err)
+
+	// Setup Gin router
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/shoplist/:id/leave", shoplistHandler.LeaveShopList)
+
+	// Create request
+	req, _ := http.NewRequest("POST", "/shoplist/"+strconv.Itoa(testShoplist.ID)+"/leave", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+
+	// Create response recorder
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("userID", owner.ID)
+	c.Params = []gin.Param{{Key: "id", Value: strconv.Itoa(testShoplist.ID)}}
+
+	shoplistHandler.LeaveShopList(c)
+
+	// Assert response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{}, response)
+
+	// Verify member is removed from shoplist
+	var memberCount int64
+	err = testConn.GetDB().Model(&db.ShoplistMember{}).
+		Where("shop_list_id = ? AND member_id = ?", testShoplist.ID, owner.ID).
+		Count(&memberCount).Error
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), memberCount, "Member should be removed from shoplist")
+
+	// Verify shoplist is deleted
+	var shoplist db.Shoplist
+	err = testConn.GetDB().First(&shoplist, testShoplist.ID).Error
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound), "Shoplist should be deleted")
+
+	// Verify all items are deleted
+	var itemCount int64
+	err = testConn.GetDB().Model(&db.ShoplistItem{}).
+		Where("shop_list_id = ?", testShoplist.ID).
+		Count(&itemCount).Error
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), itemCount, "All items should be deleted")
+}
