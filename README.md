@@ -18,7 +18,7 @@ The core service implements:
 - MySQL 8.0+
 
 ### Running Locally
-You can obtain the docker compose files from [ai_shopper_docker_compose](https://github.com/kdjuwidja/ai_shopper_docker_compose)
+You can obtain the docker compose files from [shopper_docker_compose](https://github.com/kdjuwidja/shopper_docker_compose)
 
 1. Start Redis and MySQL using Docker Compose:
    ```
