@@ -22,8 +22,8 @@ func NewSearchFlyerBiz(esc *elasticsearch.ElasticsearchClient) *SearchFlyerBiz {
 func (s *SearchFlyerBiz) SearchFlyers(ctx context.Context, product_name string) ([]*db.Flyer, error) {
 	startOfToday := time.Now().Truncate(24 * time.Hour).Unix()
 	endOfToday := startOfToday + 86400
-	query := newSearchQuery(product_name, startOfToday, endOfToday)
-	results, err := s.esc.SearchDocuments(ctx, "flyers", query)
+	esQuery := elasticsearch.CreateESQuery("flyers", newSearchQuery(product_name, startOfToday, endOfToday))
+	results, err := s.esc.SearchDocuments(ctx, esQuery)
 	if err != nil {
 		return nil, err
 	}
