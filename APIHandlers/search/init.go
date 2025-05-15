@@ -11,9 +11,9 @@ type SearchHandler struct {
 	responseFactory apiHandlers.ResponseFactory
 }
 
-func InitializeSearchHandler(esc *elasticsearch.ElasticsearchClient, responseFactory apiHandlers.ResponseFactory) *SearchHandler {
+func InitializeSearchHandler(esc elasticsearch.ElasticsearchClient, responseFactory apiHandlers.ResponseFactory) *SearchHandler {
 	return &SearchHandler{
-		searchFlyerBiz:  bizsearch.NewSearchFlyerBiz(esc),
+		searchFlyerBiz:  bizsearch.NewSearchFlyerBiz(&esc),
 		responseFactory: responseFactory,
 	}
 }

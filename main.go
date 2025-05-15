@@ -10,6 +10,7 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/osutil"
 	"netherealmstudio.com/m/v2/apiHandlers"
 	apiHandlersHealth "netherealmstudio.com/m/v2/apiHandlers/health"
+	apiHandlersmatch "netherealmstudio.com/m/v2/apiHandlers/match"
 	apiHandlerssearch "netherealmstudio.com/m/v2/apiHandlers/search"
 	apiHandlersshoplist "netherealmstudio.com/m/v2/apiHandlers/shoplist"
 	apihandlersuser "netherealmstudio.com/m/v2/apiHandlers/user"
@@ -83,7 +84,8 @@ func main() {
 	healthHandler := apiHandlersHealth.InitializeHealthHandler()
 	userProfileHandler := apihandlersuser.InitializeUserProfileHandler(*mysqlConn, *rf)
 	shoplistHandler := apiHandlersshoplist.InitializeShoplistHandler(*mysqlConn, *rf)
-	searchHandler := apiHandlerssearch.InitializeSearchHandler(esc, *rf)
+	searchHandler := apiHandlerssearch.InitializeSearchHandler(*esc, *rf)
+	matchHandler := apiHandlersmatch.InitializeMatchHandler(*esc, *mysqlConn, *rf)
 
 	serviceName := osutil.GetEnvString("SERVICE_NAME", "core")
 
@@ -102,6 +104,7 @@ func main() {
 	r.DELETE(getRoute(serviceName, "/v1/shoplist/:id/item/:itemId"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.RemoveItemFromShopList))
 	r.POST(getRoute(serviceName, "/v1/shoplist/:id/item/:itemId"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplistItem))
 	r.GET(getRoute(serviceName, "/v1/search/flyers"), tokenVerifier.VerifyToken([]string{"search"}, searchHandler.SearchFlyers))
+	r.GET(getRoute(serviceName, "/v1/match/flyers"), tokenVerifier.VerifyToken([]string{"search"}, matchHandler.MatchShoplistItemsWithFlyer))
 
 	logger.Info("Starting server on port 8080")
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
