@@ -14,9 +14,9 @@ import (
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"netherealmstudio.com/m/v2/apiHandlers"
+	apiHandlers "netherealmstudio.com/m/v2/apiHandlers"
 	dbmodel "netherealmstudio.com/m/v2/db"
-	"netherealmstudio.com/m/v2/testutil"
+	testutil "netherealmstudio.com/m/v2/testUtil"
 )
 
 const (

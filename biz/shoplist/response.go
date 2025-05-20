@@ -1,26 +1,13 @@
 package bizshoplist
 
-import (
-	"github.com/kdjuwidja/aishoppercommon/db"
-)
-
-// ShoplistBiz dependencies
-type ShoplistBiz struct {
-	dbPool db.MySQLConnectionPool
-}
-
-// Dependency Injection for ShoplistBiz
-func InitializeShoplistBiz(dbPool db.MySQLConnectionPool) *ShoplistBiz {
-	return &ShoplistBiz{
-		dbPool: dbPool,
-	}
-}
-
 // getShoplistWithMembers retrieves shoplist data including owner and members
 type ShoplistData struct {
 	ShopListID int
 	OwnerID    string
-	Members    map[string]struct{ MemberID string }
+	Members    map[string]struct {
+		MemberID string
+		Nickname string
+	}
 }
 
 // GetAllShoplistData is the response data structure for GetAllShoplists

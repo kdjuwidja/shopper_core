@@ -1,12 +1,13 @@
 package bizshoplist
 
 type ShoplistItem struct {
-	ID        int
-	ItemName  string
-	BrandName string
-	ExtraInfo string
-	Thumbnail string
-	IsBought  bool
+	ID         int
+	ShopListID int
+	ItemName   string
+	BrandName  string
+	ExtraInfo  string
+	Thumbnail  string
+	IsBought   bool
 }
 
 type ShoplistMember struct {

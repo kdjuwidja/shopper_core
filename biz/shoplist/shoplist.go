@@ -1,6 +1,7 @@
 package bizshoplist
 
 import (
+	"context"
 	"sort"
 
 	"netherealmstudio.com/m/v2/db"
@@ -15,9 +16,9 @@ func (b *ShoplistBiz) checkShoplistMembershipFromDB(userID string, shoplistID in
 
 // helper function to get shoplist and members relationship and transform the data into struct for easier use
 func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *ShoplistError) {
-	rows, err := b.dbPool.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.owner_id as owner_id, shoplist_members.member_id as member_id from shoplists 
-		LEFT JOIN shoplist_members ON shoplists.id = shoplist_members.shop_list_id 
-		WHERE shoplists.id = ?`, shoplistID).Rows()
+	rows, err := b.dbPool.GetDB().Raw(`SELECT shop_list_id, owner_id, member_id, nickname as member_nickname FROM users RIGHT JOIN
+		(SELECT shoplists.id as shop_list_id, shoplists.owner_id as owner_id, shoplist_members.member_id as member_id from shoplists 
+		LEFT JOIN shoplist_members ON shoplists.id = shoplist_members.shop_list_id WHERE shoplists.id = ?) as tbl1 ON tbl1.member_id = users.id`, shoplistID).Rows()
 
 	if err != nil {
 		return nil, NewShoplistError(ShoplistNotFound, err.Error())
@@ -28,13 +29,17 @@ func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *Sh
 		ShopListID int    `json:"shop_list_id" gorm:"column:shop_list_id"`
 		OwnerID    string `json:"owner_id" gorm:"column:owner_id"`
 		MemberID   string `json:"member_id" gorm:"column:member_id"`
+		Nickname   string `json:"nickname" gorm:"column:nickname"`
 	}
+
+	hasRows := false
 
 	// Transform the response data into the operable shoplist data
 	var shopListData ShoplistData
 	for rows.Next() {
+		hasRows = true
 		var queryShoplist QueryResult
-		err := rows.Scan(&queryShoplist.ShopListID, &queryShoplist.OwnerID, &queryShoplist.MemberID)
+		err := rows.Scan(&queryShoplist.ShopListID, &queryShoplist.OwnerID, &queryShoplist.MemberID, &queryShoplist.Nickname)
 		if err != nil {
 			return nil, NewShoplistError(ShoplistNotFound, err.Error())
 		}
@@ -42,12 +47,22 @@ func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *Sh
 		if shopListData.ShopListID == 0 {
 			shopListData.ShopListID = queryShoplist.ShopListID
 			shopListData.OwnerID = queryShoplist.OwnerID
-			shopListData.Members = make(map[string]struct{ MemberID string })
+			shopListData.Members = make(map[string]struct {
+				MemberID string
+				Nickname string
+			})
 		}
 
 		if _, exists := shopListData.Members[queryShoplist.MemberID]; !exists {
-			shopListData.Members[queryShoplist.MemberID] = struct{ MemberID string }{MemberID: queryShoplist.MemberID}
+			shopListData.Members[queryShoplist.MemberID] = struct {
+				MemberID string
+				Nickname string
+			}{MemberID: queryShoplist.MemberID, Nickname: queryShoplist.Nickname}
 		}
+	}
+
+	if !hasRows {
+		return nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
 
 	return &shopListData, nil
@@ -214,4 +229,37 @@ func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string)
 	}
 
 	return nil
+}
+
+func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID string) ([]ShoplistItem, *ShoplistError) {
+	var dbItems []*db.ShoplistItem
+	err := b.dbPool.GetDB().WithContext(ctx).Raw(`
+		SELECT shoplist_items.id as id, 
+			   shoplist_items.shop_list_id as shop_list_id,
+			   shoplist_items.item_name as item_name, 
+			   shoplist_items.brand_name as brand_name,
+			   shoplist_items.extra_info as extra_info,
+			   shoplist_items.is_bought as is_bought        
+		FROM (SELECT * FROM shoplist_members WHERE member_id = ?) as tbl1
+		LEFT JOIN shoplist_items
+		ON shoplist_items.shop_list_id = tbl1.shop_list_id
+	`, userID).Scan(&dbItems).Error
+	if err != nil {
+		return nil, NewShoplistError(ShoplistFailedToProcess, "Failed to get shoplist items.")
+	}
+
+	// Convert db.ShoplistItem to ShoplistItem
+	items := make([]ShoplistItem, len(dbItems))
+	for i, dbItem := range dbItems {
+		items[i] = ShoplistItem{
+			ID:         dbItem.ID,
+			ShopListID: dbItem.ShopListID,
+			ItemName:   dbItem.ItemName,
+			BrandName:  dbItem.BrandName,
+			ExtraInfo:  dbItem.ExtraInfo,
+			IsBought:   dbItem.IsBought,
+		}
+	}
+
+	return items, nil
 }

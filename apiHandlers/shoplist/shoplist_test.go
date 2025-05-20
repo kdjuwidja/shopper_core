@@ -1170,3 +1170,227 @@ func TestUpdateShoplistEmptyName(t *testing.T) {
 		"code": "GEN_00003", "error": "Missing field in body: name",
 	}, response)
 }
+
+func TestGetAllShoplistAndItemsForUser(t *testing.T) {
+	// Setup test database
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
+	// Create test users
+	owner := dbmodel.User{
+		ID:         "owner-123",
+		Nickname:   "Owner",
+		PostalCode: "238801",
+	}
+	member := dbmodel.User{
+		ID:         "member-123",
+		Nickname:   "Member",
+		PostalCode: "238802",
+	}
+	err := testConn.GetDB().Create(&owner).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&member).Error
+	assert.NoError(t, err)
+
+	// Create test shoplists
+	shoplist1 := dbmodel.Shoplist{
+		ID:      1,
+		OwnerID: owner.ID,
+		Name:    "Shoplist 1",
+	}
+	shoplist2 := dbmodel.Shoplist{
+		ID:      2,
+		OwnerID: member.ID,
+		Name:    "Shoplist 2",
+	}
+	err = testConn.GetDB().Create(&shoplist1).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&shoplist2).Error
+	assert.NoError(t, err)
+
+	// Add owner as member to their shoplist
+	ownerMember1 := dbmodel.ShoplistMember{
+		ID:         1,
+		ShopListID: shoplist1.ID,
+		MemberID:   owner.ID,
+	}
+	err = testConn.GetDB().Create(&ownerMember1).Error
+	assert.NoError(t, err)
+
+	// Add member to owner's shoplist
+	memberShoplist1 := dbmodel.ShoplistMember{
+		ID:         2,
+		ShopListID: shoplist1.ID,
+		MemberID:   member.ID,
+	}
+	err = testConn.GetDB().Create(&memberShoplist1).Error
+	assert.NoError(t, err)
+
+	// Add member as member to their own shoplist
+	memberShoplist2 := dbmodel.ShoplistMember{
+		ID:         3,
+		ShopListID: shoplist2.ID,
+		MemberID:   member.ID,
+	}
+	err = testConn.GetDB().Create(&memberShoplist2).Error
+	assert.NoError(t, err)
+
+	// Add test items to shoplist1
+	item1 := dbmodel.ShoplistItem{
+		ID:         1,
+		ShopListID: shoplist1.ID,
+		ItemName:   "Test Item 1",
+		BrandName:  "Test Brand 1",
+		ExtraInfo:  "Test Info 1",
+		IsBought:   false,
+	}
+	item2 := dbmodel.ShoplistItem{
+		ID:         2,
+		ShopListID: shoplist1.ID,
+		ItemName:   "Test Item 2",
+		BrandName:  "Test Brand 2",
+		ExtraInfo:  "Test Info 2",
+		IsBought:   true,
+	}
+	err = testConn.GetDB().Create(&item1).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&item2).Error
+	assert.NoError(t, err)
+
+	// Add test items to shoplist2
+	item3 := dbmodel.ShoplistItem{
+		ID:         3,
+		ShopListID: shoplist2.ID,
+		ItemName:   "Test Item 3",
+		BrandName:  "Test Brand 3",
+		ExtraInfo:  "Test Info 3",
+		IsBought:   false,
+	}
+	err = testConn.GetDB().Create(&item3).Error
+	assert.NoError(t, err)
+
+	// Setup Gin router
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/shoplist/items", shoplistHandler.GetAllShoplistAndItemsForUser)
+
+	// Test case 1: Get shoplists and items for owner
+	{
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/items", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", owner.ID)
+
+		shoplistHandler.GetAllShoplistAndItemsForUser(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		expectedBody := map[string]interface{}{
+			"shoplists": []interface{}{
+				map[string]interface{}{
+					"id":   float64(1),
+					"name": "Shoplist 1",
+					"owner": map[string]interface{}{
+						"id":       "owner-123",
+						"nickname": "Owner",
+					},
+					"items": []interface{}{
+						map[string]interface{}{
+							"id":         float64(1),
+							"name":       "Test Item 1",
+							"brand_name": "Test Brand 1",
+							"extra_info": "Test Info 1",
+							"is_bought":  false,
+						},
+						map[string]interface{}{
+							"id":         float64(2),
+							"name":       "Test Item 2",
+							"brand_name": "Test Brand 2",
+							"extra_info": "Test Info 2",
+							"is_bought":  true,
+						},
+					},
+				},
+			},
+		}
+		assert.Equal(t, expectedBody, response)
+	}
+
+	// Test case 2: Get shoplists and items for member
+	{
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/items", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", member.ID)
+
+		shoplistHandler.GetAllShoplistAndItemsForUser(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		expectedBody := map[string]interface{}{
+			"shoplists": []interface{}{
+				map[string]interface{}{
+					"id":   float64(1),
+					"name": "Shoplist 1",
+					"owner": map[string]interface{}{
+						"id":       "owner-123",
+						"nickname": "Owner",
+					},
+					"items": []interface{}{
+						map[string]interface{}{
+							"id":         float64(1),
+							"name":       "Test Item 1",
+							"brand_name": "Test Brand 1",
+							"extra_info": "Test Info 1",
+							"is_bought":  false,
+						},
+						map[string]interface{}{
+							"id":         float64(2),
+							"name":       "Test Item 2",
+							"brand_name": "Test Brand 2",
+							"extra_info": "Test Info 2",
+							"is_bought":  true,
+						},
+					},
+				},
+				map[string]interface{}{
+					"id":   float64(2),
+					"name": "Shoplist 2",
+					"owner": map[string]interface{}{
+						"id":       "member-123",
+						"nickname": "Member",
+					},
+					"items": []interface{}{
+						map[string]interface{}{
+							"id":         float64(3),
+							"name":       "Test Item 3",
+							"brand_name": "Test Brand 3",
+							"extra_info": "Test Info 3",
+							"is_bought":  false,
+						},
+					},
+				},
+			},
+		}
+		assert.Equal(t, expectedBody, response)
+	}
+}
