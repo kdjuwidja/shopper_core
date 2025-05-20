@@ -318,14 +318,7 @@ func (h *ShoplistHandler) GetAllShoplistAndItemsForUser(c *gin.Context) {
 		return
 	}
 
-	shoplists, err := h.shoplistBiz.GetAllShoplists(userID)
-	if err != nil {
-		logger.Errorf("GetAllShoplistItems: Failed to get shoplists. Error: %s", err.Error())
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
-	shoplistItems, err := h.shoplistBiz.GetAllShoplistAndItemsForUser(c.Request.Context(), userID)
+	shoplists, err := h.shoplistBiz.GetAllShoplistAndItemsForUser(c.Request.Context(), userID)
 	if err != nil {
 		logger.Errorf("GetAllShoplistItems: Failed to get shoplist items. Error: %s", err.Error())
 		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
@@ -333,22 +326,6 @@ func (h *ShoplistHandler) GetAllShoplistAndItemsForUser(c *gin.Context) {
 	}
 
 	// Transform the response to match the desired format
-	type ShoplistResponse struct {
-		ID    int    `json:"id"`
-		Name  string `json:"name"`
-		Owner struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		} `json:"owner"`
-		Items []struct {
-			ID        int    `json:"id"`
-			Name      string `json:"name"`
-			BrandName string `json:"brand_name"`
-			ExtraInfo string `json:"extra_info"`
-			IsBought  bool   `json:"is_bought"`
-		} `json:"items"`
-	}
-
 	response := make([]ShoplistResponse, 0)
 	for _, shoplist := range shoplists {
 		shoplistResp := ShoplistResponse{
@@ -371,26 +348,85 @@ func (h *ShoplistHandler) GetAllShoplistAndItemsForUser(c *gin.Context) {
 		}
 
 		// Add items for this shoplist
-		for _, item := range shoplistItems {
-			if item.ShopListID == shoplist.ID {
-				shoplistResp.Items = append(shoplistResp.Items, struct {
-					ID        int    `json:"id"`
-					Name      string `json:"name"`
-					BrandName string `json:"brand_name"`
-					ExtraInfo string `json:"extra_info"`
-					IsBought  bool   `json:"is_bought"`
-				}{
-					ID:        item.ID,
-					Name:      item.ItemName,
-					BrandName: item.BrandName,
-					ExtraInfo: item.ExtraInfo,
-					IsBought:  item.IsBought,
-				})
-			}
+		for _, item := range shoplist.Items {
+			shoplistResp.Items = append(shoplistResp.Items, struct {
+				ID        int    `json:"id"`
+				Name      string `json:"name"`
+				BrandName string `json:"brand_name"`
+				ExtraInfo string `json:"extra_info"`
+				IsBought  bool   `json:"is_bought"`
+			}{
+				ID:        item.ID,
+				Name:      item.ItemName,
+				BrandName: item.BrandName,
+				ExtraInfo: item.ExtraInfo,
+				IsBought:  item.IsBought,
+			})
 		}
 
 		response = append(response, shoplistResp)
 	}
 
 	h.responseFactory.CreateOKResponse(c, map[string]interface{}{"shoplists": response})
+}
+
+func (h *ShoplistHandler) GetShoplistAndItemsForUserByShoplistID(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		logger.Errorf("GetShoplistAndItemsForUserByShoplistID: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		return
+	}
+
+	shoplistID, perr := strconv.Atoi(c.Param("id"))
+	if perr != nil {
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
+		return
+	}
+
+	shoplist, err := h.shoplistBiz.GetShoplistAndItems(c.Request.Context(), userID, shoplistID)
+	if err != nil {
+		logger.Errorf("GetShoplistAndItemsForUserByShoplistID: Failed to get shoplist. Error: %s", err.Error())
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
+		return
+	}
+
+	// Transform the shoplist into the response format
+	shoplistResp := ShoplistResponse{
+		ID:   shoplist.ID,
+		Name: shoplist.Name,
+		Owner: struct {
+			ID       string `json:"id"`
+			Nickname string `json:"nickname"`
+		}{
+			ID:       shoplist.OwnerID,
+			Nickname: shoplist.OwnerNickname,
+		},
+		Items: make([]struct {
+			ID        int    `json:"id"`
+			Name      string `json:"name"`
+			BrandName string `json:"brand_name"`
+			ExtraInfo string `json:"extra_info"`
+			IsBought  bool   `json:"is_bought"`
+		}, 0),
+	}
+
+	// Add items for this shoplist
+	for _, item := range shoplist.Items {
+		shoplistResp.Items = append(shoplistResp.Items, struct {
+			ID        int    `json:"id"`
+			Name      string `json:"name"`
+			BrandName string `json:"brand_name"`
+			ExtraInfo string `json:"extra_info"`
+			IsBought  bool   `json:"is_bought"`
+		}{
+			ID:        item.ID,
+			Name:      item.ItemName,
+			BrandName: item.BrandName,
+			ExtraInfo: item.ExtraInfo,
+			IsBought:  item.IsBought,
+		})
+	}
+
+	h.responseFactory.CreateOKResponse(c, shoplistResp)
 }

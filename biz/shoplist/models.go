@@ -20,4 +20,5 @@ type Shoplist struct {
 	Name          string
 	OwnerID       string
 	OwnerNickname string
+	Items         []ShoplistItem
 }

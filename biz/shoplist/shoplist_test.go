@@ -155,31 +155,63 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 	biz := InitializeShoplistBiz(*dbPool)
 
 	tests := []struct {
-		name          string
-		userID        string
-		expectedItems []ShoplistItem
-		expectedError *ShoplistError
+		name              string
+		userID            string
+		expectedShoplists []*Shoplist
+		expectedError     *ShoplistError
 	}{
 		{
 			name:   "successful get all items for user",
 			userID: "test_user",
-			expectedItems: []ShoplistItem{
-				{ID: 1, ShopListID: 1, ItemName: "Item 1", BrandName: "Brand 1"},
-				{ID: 2, ShopListID: 1, ItemName: "Item 2", BrandName: "Brand 2"},
-				{ID: 3, ShopListID: 1, ItemName: "Item 3", BrandName: "Brand 3"},
-				{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1"},
-				{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2"},
+			expectedShoplists: []*Shoplist{
+				{
+					ID:            1,
+					Name:          "Test Shoplist 1",
+					OwnerID:       "test_user",
+					OwnerNickname: "Test User",
+					Items: []ShoplistItem{
+						{ID: 1, ShopListID: 1, ItemName: "Item 1", BrandName: "Brand 1", ExtraInfo: "Info 1", IsBought: false},
+						{ID: 2, ShopListID: 1, ItemName: "Item 2", BrandName: "Brand 2", ExtraInfo: "Info 2", IsBought: true},
+						{ID: 3, ShopListID: 1, ItemName: "Item 3", BrandName: "Brand 3", ExtraInfo: "Info 3", IsBought: false},
+					},
+				},
+				{
+					ID:            3,
+					Name:          "Test Shoplist 3",
+					OwnerID:       "test_user2",
+					OwnerNickname: "Test User 2",
+					Items: []ShoplistItem{
+						{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
+						{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
+					},
+				},
 			},
 			expectedError: nil,
 		},
 		{
 			name:   "successful get all items for second user",
 			userID: "test_user2",
-			expectedItems: []ShoplistItem{
-				{ID: 4, ShopListID: 2, ItemName: "Item 4", BrandName: "Brand 4"},
-				{ID: 5, ShopListID: 2, ItemName: "Item 5", BrandName: "Brand 5"},
-				{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1"},
-				{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2"},
+			expectedShoplists: []*Shoplist{
+				{
+					ID:            2,
+					Name:          "Test Shoplist 2",
+					OwnerID:       "test_user2",
+					OwnerNickname: "Test User 2",
+					Items: []ShoplistItem{
+						{ID: 4, ShopListID: 2, ItemName: "Item 4", BrandName: "Brand 4", ExtraInfo: "Info 4", IsBought: false},
+						{ID: 5, ShopListID: 2, ItemName: "Item 5", BrandName: "Brand 5", ExtraInfo: "Info 5", IsBought: true},
+					},
+				},
+				{
+					ID:            3,
+					Name:          "Test Shoplist 3",
+					OwnerID:       "test_user2",
+					OwnerNickname: "Test User 2",
+					Items: []ShoplistItem{
+						{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
+						{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
+					},
+				},
 			},
 			expectedError: nil,
 		},
@@ -187,13 +219,30 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items, err := biz.GetAllShoplistAndItemsForUser(context.Background(), tt.userID)
+			shoplists, err := biz.GetAllShoplistAndItemsForUser(context.Background(), tt.userID)
 			if tt.expectedError != nil {
 				assert.Equal(t, tt.expectedError, err)
-				assert.Nil(t, items)
+				assert.Nil(t, shoplists)
 			} else {
 				assert.Nil(t, err)
-				assert.Equal(t, tt.expectedItems, items)
+				assert.Equal(t, len(tt.expectedShoplists), len(shoplists))
+				for i, expectedShoplist := range tt.expectedShoplists {
+					assert.Equal(t, expectedShoplist.ID, shoplists[i].ID)
+					assert.Equal(t, expectedShoplist.Name, shoplists[i].Name)
+					assert.Equal(t, expectedShoplist.OwnerID, shoplists[i].OwnerID)
+					assert.Equal(t, expectedShoplist.OwnerNickname, shoplists[i].OwnerNickname)
+
+					// Compare items
+					assert.Equal(t, len(expectedShoplist.Items), len(shoplists[i].Items))
+					for j, expectedItem := range expectedShoplist.Items {
+						assert.Equal(t, expectedItem.ID, shoplists[i].Items[j].ID)
+						assert.Equal(t, expectedItem.ShopListID, shoplists[i].Items[j].ShopListID)
+						assert.Equal(t, expectedItem.ItemName, shoplists[i].Items[j].ItemName)
+						assert.Equal(t, expectedItem.BrandName, shoplists[i].Items[j].BrandName)
+						assert.Equal(t, expectedItem.ExtraInfo, shoplists[i].Items[j].ExtraInfo)
+						assert.Equal(t, expectedItem.IsBought, shoplists[i].Items[j].IsBought)
+					}
+				}
 			}
 		})
 	}
@@ -273,6 +322,95 @@ func TestGetShoplistWithMembers(t *testing.T) {
 					assert.Contains(t, data.Members, memberID)
 					assert.Equal(t, member.MemberID, data.Members[memberID].MemberID)
 					assert.Equal(t, member.Nickname, data.Members[memberID].Nickname)
+				}
+			}
+		})
+	}
+}
+
+func TestGetShoplistAndItems(t *testing.T) {
+	dbPool := testutil.SetupTestEnv(t)
+	setupSearchTestData(t, dbPool)
+	biz := InitializeShoplistBiz(*dbPool)
+
+	tests := []struct {
+		name             string
+		userID           string
+		shoplistID       int
+		expectedShoplist *Shoplist
+		expectedError    *ShoplistError
+	}{
+		{
+			name:       "successful get shoplist and items for owner",
+			userID:     "test_user",
+			shoplistID: 1,
+			expectedShoplist: &Shoplist{
+				ID:            1,
+				Name:          "Test Shoplist 1",
+				OwnerID:       "test_user",
+				OwnerNickname: "Test User",
+				Items: []ShoplistItem{
+					{ID: 1, ShopListID: 1, ItemName: "Item 1", BrandName: "Brand 1", ExtraInfo: "Info 1", IsBought: false},
+					{ID: 2, ShopListID: 1, ItemName: "Item 2", BrandName: "Brand 2", ExtraInfo: "Info 2", IsBought: true},
+					{ID: 3, ShopListID: 1, ItemName: "Item 3", BrandName: "Brand 3", ExtraInfo: "Info 3", IsBought: false},
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name:       "successful get shared shoplist and items for member",
+			userID:     "test_user",
+			shoplistID: 3,
+			expectedShoplist: &Shoplist{
+				ID:            3,
+				Name:          "Test Shoplist 3",
+				OwnerID:       "test_user2",
+				OwnerNickname: "Test User 2",
+				Items: []ShoplistItem{
+					{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
+					{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name:             "shoplist not found",
+			userID:           "test_user",
+			shoplistID:       999,
+			expectedShoplist: nil,
+			expectedError:    NewShoplistError(ShoplistNotFound, "Shoplist not found."),
+		},
+		{
+			name:             "user not a member",
+			userID:           "test_user",
+			shoplistID:       2,
+			expectedShoplist: nil,
+			expectedError:    NewShoplistError(ShoplistNotFound, "Shoplist not found."),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			shoplist, err := biz.GetShoplistAndItems(context.Background(), tt.userID, tt.shoplistID)
+			if tt.expectedError != nil {
+				assert.Equal(t, tt.expectedError.ErrCode, err.ErrCode)
+				assert.Nil(t, shoplist)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedShoplist.ID, shoplist.ID)
+				assert.Equal(t, tt.expectedShoplist.Name, shoplist.Name)
+				assert.Equal(t, tt.expectedShoplist.OwnerID, shoplist.OwnerID)
+				assert.Equal(t, tt.expectedShoplist.OwnerNickname, shoplist.OwnerNickname)
+
+				// Compare items
+				assert.Equal(t, len(tt.expectedShoplist.Items), len(shoplist.Items))
+				for i, expectedItem := range tt.expectedShoplist.Items {
+					assert.Equal(t, expectedItem.ID, shoplist.Items[i].ID)
+					assert.Equal(t, expectedItem.ShopListID, shoplist.Items[i].ShopListID)
+					assert.Equal(t, expectedItem.ItemName, shoplist.Items[i].ItemName)
+					assert.Equal(t, expectedItem.BrandName, shoplist.Items[i].BrandName)
+					assert.Equal(t, expectedItem.ExtraInfo, shoplist.Items[i].ExtraInfo)
+					assert.Equal(t, expectedItem.IsBought, shoplist.Items[i].IsBought)
 				}
 			}
 		})

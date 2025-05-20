@@ -231,35 +231,147 @@ func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string)
 	return nil
 }
 
-func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID string) ([]ShoplistItem, *ShoplistError) {
-	var dbItems []*db.ShoplistItem
+func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID string) ([]*Shoplist, *ShoplistError) {
+	type QueryResult struct {
+		ShopListID    int     `gorm:"column:shop_list_id"`
+		ShopListName  string  `gorm:"column:shop_list_name"`
+		MemberID      string  `gorm:"column:member_id"`
+		ItemID        *int    `gorm:"column:item_id"`
+		ItemName      *string `gorm:"column:item_name"`
+		BrandName     *string `gorm:"column:brand_name"`
+		ExtraInfo     *string `gorm:"column:extra_info"`
+		IsBought      *bool   `gorm:"column:is_bought"`
+		OwnerID       string  `gorm:"column:owner_id"`
+		OwnerNickname string  `gorm:"column:owner_nickname"`
+	}
+
+	var results []QueryResult
 	err := b.dbPool.GetDB().WithContext(ctx).Raw(`
-		SELECT shoplist_items.id as id, 
-			   shoplist_items.shop_list_id as shop_list_id,
-			   shoplist_items.item_name as item_name, 
-			   shoplist_items.brand_name as brand_name,
-			   shoplist_items.extra_info as extra_info,
-			   shoplist_items.is_bought as is_bought        
+		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
 		FROM (SELECT * FROM shoplist_members WHERE member_id = ?) as tbl1
-		LEFT JOIN shoplist_items
-		ON shoplist_items.shop_list_id = tbl1.shop_list_id
-	`, userID).Scan(&dbItems).Error
+		LEFT JOIN (
+			SELECT shop_list_id, shop_list_name, item_id, item_name, brand_name, extra_info, is_bought, owner_id, nickname as owner_nickname 
+			FROM (
+				SELECT shop_list_id as shop_list_id, name as shop_list_name, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id 
+				FROM shoplist_items 
+				LEFT JOIN shoplists ON shoplist_items.shop_list_id = shoplists.id
+			) as shoplistXshoplistItems 
+			LEFT JOIN users ON users.id = shoplistXshoplistItems.owner_id
+		) as tbl2
+		ON tbl2.shop_list_id = tbl1.shop_list_id`, userID).Scan(&results).Error
+
 	if err != nil {
 		return nil, NewShoplistError(ShoplistFailedToProcess, "Failed to get shoplist items.")
 	}
 
-	// Convert db.ShoplistItem to ShoplistItem
-	items := make([]ShoplistItem, len(dbItems))
-	for i, dbItem := range dbItems {
-		items[i] = ShoplistItem{
-			ID:         dbItem.ID,
-			ShopListID: dbItem.ShopListID,
-			ItemName:   dbItem.ItemName,
-			BrandName:  dbItem.BrandName,
-			ExtraInfo:  dbItem.ExtraInfo,
-			IsBought:   dbItem.IsBought,
+	if len(results) == 0 {
+		return nil, NewShoplistError(ShoplistNotFound, "No shoplists found.")
+	}
+
+	// Create a map to store unique shoplists
+	shoplistMap := make(map[int]*Shoplist)
+
+	// Process results
+	for _, r := range results {
+		// Add shoplist if not exists
+		if _, exists := shoplistMap[r.ShopListID]; !exists {
+			shoplistMap[r.ShopListID] = &Shoplist{
+				ID:            r.ShopListID,
+				Name:          r.ShopListName,
+				OwnerID:       r.OwnerID,
+				OwnerNickname: r.OwnerNickname,
+				Items:         make([]ShoplistItem, 0),
+			}
+		}
+
+		// Add item if exists
+		if r.ItemID != nil {
+			item := ShoplistItem{
+				ID:         *r.ItemID,
+				ShopListID: r.ShopListID,
+				ItemName:   *r.ItemName,
+				BrandName:  *r.BrandName,
+				ExtraInfo:  *r.ExtraInfo,
+				IsBought:   *r.IsBought,
+			}
+			shoplistMap[r.ShopListID].Items = append(shoplistMap[r.ShopListID].Items, item)
 		}
 	}
 
-	return items, nil
+	// Convert map to slice
+	shoplists := make([]*Shoplist, 0, len(shoplistMap))
+	for _, shoplist := range shoplistMap {
+		shoplists = append(shoplists, shoplist)
+	}
+
+	// Sort shoplists by ID
+	sort.Slice(shoplists, func(i, j int) bool {
+		return shoplists[i].ID < shoplists[j].ID
+	})
+
+	return shoplists, nil
+}
+
+func (b *ShoplistBiz) GetShoplistAndItems(ctx context.Context, userID string, shoplistID int) (*Shoplist, *ShoplistError) {
+	type QueryResult struct {
+		ShopListID    int     `gorm:"column:shop_list_id"`
+		ShopListName  string  `gorm:"column:shop_list_name"`
+		MemberID      string  `gorm:"column:member_id"`
+		ItemID        *int    `gorm:"column:item_id"`
+		ItemName      *string `gorm:"column:item_name"`
+		BrandName     *string `gorm:"column:brand_name"`
+		ExtraInfo     *string `gorm:"column:extra_info"`
+		IsBought      *bool   `gorm:"column:is_bought"`
+		OwnerID       string  `gorm:"column:owner_id"`
+		OwnerNickname string  `gorm:"column:owner_nickname"`
+	}
+
+	var results []QueryResult
+	err := b.dbPool.GetDB().WithContext(ctx).Raw(`
+		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
+		FROM (SELECT * FROM shoplist_members WHERE member_id = ?) as tbl1
+		LEFT JOIN (
+			SELECT shop_list_id, shop_list_name, item_id, item_name, brand_name, extra_info, is_bought, owner_id, nickname as owner_nickname 
+			FROM (
+				SELECT shop_list_id as shop_list_id, name as shop_list_name, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id 
+				FROM shoplist_items 
+				LEFT JOIN shoplists ON shoplist_items.shop_list_id = shoplists.id
+			) as shoplistXshoplistItems 
+			LEFT JOIN users ON users.id = shoplistXshoplistItems.owner_id
+		) as tbl2
+		ON tbl2.shop_list_id = tbl1.shop_list_id
+		WHERE tbl1.shop_list_id = ?`, userID, shoplistID).Scan(&results).Error
+
+	if err != nil {
+		return nil, NewShoplistError(ShoplistFailedToProcess, "Failed to get shoplist items.")
+	}
+
+	if len(results) == 0 {
+		return nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
+	}
+
+	// Create shoplist from first row (all rows have same shoplist info)
+	shoplist := &Shoplist{
+		ID:            results[0].ShopListID,
+		Name:          results[0].ShopListName,
+		OwnerID:       results[0].OwnerID,
+		OwnerNickname: results[0].OwnerNickname,
+		Items:         make([]ShoplistItem, 0),
+	}
+
+	// Add items to shoplist
+	for _, r := range results {
+		if r.ItemID != nil {
+			shoplist.Items = append(shoplist.Items, ShoplistItem{
+				ID:         *r.ItemID,
+				ShopListID: r.ShopListID,
+				ItemName:   *r.ItemName,
+				BrandName:  *r.BrandName,
+				ExtraInfo:  *r.ExtraInfo,
+				IsBought:   *r.IsBought,
+			})
+		}
+	}
+
+	return shoplist, nil
 }
