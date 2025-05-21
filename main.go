@@ -105,7 +105,7 @@ func main() {
 	r.POST(getRoute(serviceName, "/v1/shoplist/:id/item/:itemId"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.UpdateShoplistItem))
 	r.GET(getRoute(serviceName, "/v1/search/flyers"), tokenVerifier.VerifyToken([]string{"search"}, searchHandler.SearchFlyers))
 	r.GET(getRoute(serviceName, "/v1/match/flyers"), tokenVerifier.VerifyToken([]string{"search"}, matchHandler.MatchShoplistItemsWithFlyer))
-	r.GET(getRoute(serviceName, "/v2/shoplist/"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetAllShoplistAndItemsForUser))
+	r.GET(getRoute(serviceName, "/v2/shoplist"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetAllShoplistAndItemsForUser))
 	r.GET(getRoute(serviceName, "/v2/shoplist/:id"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplistAndItemsForUserByShoplistID))
 	r.GET(getRoute(serviceName, "/v2/shoplist/:id/members"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplistMembers))
 
