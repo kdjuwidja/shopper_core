@@ -8,6 +8,29 @@ import (
 	"netherealmstudio.com/m/v2/db"
 )
 
+func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]ShoplistMember, *ShoplistError) {
+	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
+	if shopListErr != nil {
+		return nil, shopListErr
+	}
+
+	// check if user is a member
+	if _, exists := shopListData.Members[userID]; !exists {
+		return nil, NewShoplistError(ShoplistNotMember, "User is not a member of the shoplist.")
+	}
+
+	result := make([]ShoplistMember, 0)
+	for _, member := range shopListData.Members {
+		shoplistMember := ShoplistMember{
+			ID:       member.MemberID,
+			Nickname: member.Nickname,
+		}
+		result = append(result, shoplistMember)
+	}
+
+	return result, nil
+}
+
 func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistError {
 	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
 	if shopListErr != nil {

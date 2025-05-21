@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
+	"netherealmstudio.com/m/v2/apiHandlers"
 	"netherealmstudio.com/m/v2/db"
 )
 
@@ -965,4 +966,279 @@ func TestLeaveShopListOwnerWithItems(t *testing.T) {
 		Count(&itemCount).Error
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), itemCount, "All items should be deleted")
+}
+
+func TestGetShoplistMembers(t *testing.T) {
+	// Setup test database
+	shoplistHandler, testConn := setUpShoplistTestEnv(t)
+
+	// Create test users
+	owner := db.User{
+		ID:         "owner-123",
+		Nickname:   "Owner",
+		PostalCode: "238801",
+	}
+	member1 := db.User{
+		ID:         "member-123",
+		Nickname:   "Member 1",
+		PostalCode: "238802",
+	}
+	member2 := db.User{
+		ID:         "member-456",
+		Nickname:   "Member 2",
+		PostalCode: "238803",
+	}
+	err := testConn.GetDB().Create(&owner).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&member1).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&member2).Error
+	assert.NoError(t, err)
+
+	// Create test shoplist
+	shoplist := db.Shoplist{
+		ID:      1,
+		OwnerID: owner.ID,
+		Name:    "Test Shoplist",
+	}
+	err = testConn.GetDB().Create(&shoplist).Error
+	assert.NoError(t, err)
+
+	// Add members to shoplist
+	ownerMember := db.ShoplistMember{
+		ID:         1,
+		ShopListID: shoplist.ID,
+		MemberID:   owner.ID,
+	}
+	member1Record := db.ShoplistMember{
+		ID:         2,
+		ShopListID: shoplist.ID,
+		MemberID:   member1.ID,
+	}
+	member2Record := db.ShoplistMember{
+		ID:         3,
+		ShopListID: shoplist.ID,
+		MemberID:   member2.ID,
+	}
+	err = testConn.GetDB().Create(&ownerMember).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&member1Record).Error
+	assert.NoError(t, err)
+	err = testConn.GetDB().Create(&member2Record).Error
+	assert.NoError(t, err)
+
+	t.Run("Success - Get members as owner", func(t *testing.T) {
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/1/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", owner.ID)
+		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		members := response["members"].([]interface{})
+		assert.Equal(t, 3, len(members))
+
+		// Verify member data
+		memberMap := make(map[string]string)
+		for _, m := range members {
+			member := m.(map[string]interface{})
+			memberMap[member["id"].(string)] = member["nickname"].(string)
+		}
+
+		assert.Equal(t, "Owner", memberMap[owner.ID])
+		assert.Equal(t, "Member 1", memberMap[member1.ID])
+		assert.Equal(t, "Member 2", memberMap[member2.ID])
+	})
+
+	t.Run("Success - Get members as member", func(t *testing.T) {
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/1/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", member1.ID)
+		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		members := response["members"].([]interface{})
+		assert.Equal(t, 3, len(members))
+
+		// Verify member data
+		memberMap := make(map[string]string)
+		for _, m := range members {
+			member := m.(map[string]interface{})
+			memberMap[member["id"].(string)] = member["nickname"].(string)
+		}
+
+		assert.Equal(t, "Owner", memberMap[owner.ID])
+		assert.Equal(t, "Member 1", memberMap[member1.ID])
+		assert.Equal(t, "Member 2", memberMap[member2.ID])
+	})
+
+	t.Run("Error - Invalid shoplist ID", func(t *testing.T) {
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/invalid/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", owner.ID)
+		c.Params = []gin.Param{{Key: "id", Value: "invalid"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"code":  apiHandlers.ErrMissingRequiredParam,
+			"error": "Missing parameter: id",
+		}, response)
+	})
+
+	t.Run("Error - Non-existent shoplist", func(t *testing.T) {
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/999/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", owner.ID)
+		c.Params = []gin.Param{{Key: "id", Value: "999"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"code":  apiHandlers.ErrShoplistNotFound,
+			"error": "Shoplist not found.",
+		}, response)
+	})
+
+	t.Run("Error - Non-member user", func(t *testing.T) {
+		// Create non-member user
+		nonMember := db.User{
+			ID:         "non-member-123",
+			Nickname:   "Non Member",
+			PostalCode: "238804",
+		}
+		err := testConn.GetDB().Create(&nonMember).Error
+		assert.NoError(t, err)
+
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/1/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", nonMember.ID)
+		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"code":  apiHandlers.ErrShoplistNotFound,
+			"error": "Shoplist not found.",
+		}, response)
+	})
+
+	t.Run("Error - Empty user ID", func(t *testing.T) {
+		// Setup Gin router
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.GET("/shoplist/:id/members", shoplistHandler.GetShoplistMembers)
+
+		// Create request
+		req, _ := http.NewRequest("GET", "/shoplist/1/members", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+
+		// Create response recorder
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("userID", "")
+		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+
+		shoplistHandler.GetShoplistMembers(c)
+
+		// Assert response
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{
+			"code":  apiHandlers.ErrInternalServerError,
+			"error": "Internal server error.",
+		}, response)
+	})
 }

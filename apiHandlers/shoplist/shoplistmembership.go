@@ -11,6 +11,63 @@ import (
 	bizshoplist "netherealmstudio.com/m/v2/biz/shoplist"
 )
 
+// GetShoplistMembers returns the members of a shoplist
+// @Summary Get shoplist members
+// @Description Returns the members of a shoplist
+// @Tags shoplist
+// @Accept json
+// @Produce json
+// @Param id path int true "Shoplist ID"
+// @Success 200 {object} map[string]interface{} "Successfully got shoplist members"
+// @Failure 400 {object} map[string]string "Invalid shoplist ID"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 404 {object} map[string]string "Not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /shoplist/{id}/members [GET]
+func (h *ShoplistHandler) GetShoplistMembers(c *gin.Context) {
+	// Get user ID from context
+	userID := c.GetString("userID")
+	if userID == "" {
+		logger.Errorf("GetShoplistMembers: User ID is empty.")
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		return
+	}
+
+	// Get shoplist ID from URL
+	shoplistID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
+		return
+	}
+
+	members, shoplistErr := h.shoplistBiz.GetShoplistMembers(userID, shoplistID)
+	if shoplistErr != nil {
+		switch shoplistErr.ErrCode {
+		case bizshoplist.ShoplistNotFound:
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
+		case bizshoplist.ShoplistNotMember:
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
+		default:
+			logger.Errorf("GetShoplistMembers: Failed to get shoplist members. Error: %s", shoplistErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		}
+		return
+	}
+
+	// Transform members into the response format
+	responseMembers := make([]map[string]string, 0)
+	for _, member := range members {
+		responseMembers = append(responseMembers, map[string]string{
+			"id":       member.ID,
+			"nickname": member.Nickname,
+		})
+	}
+
+	h.responseFactory.CreateOKResponse(c, map[string]interface{}{
+		"members": responseMembers,
+	})
+}
+
 // LeaveShopList allows a user to leave a shoplist
 // @Summary Leave a shoplist
 // @Description Allows a user to leave a shoplist. If the user is the owner, ownership will be transferred to another member. If the user is the last member, the shoplist will be deleted.

@@ -107,6 +107,7 @@ func main() {
 	r.GET(getRoute(serviceName, "/v1/match/flyers"), tokenVerifier.VerifyToken([]string{"search"}, matchHandler.MatchShoplistItemsWithFlyer))
 	r.GET(getRoute(serviceName, "/v2/shoplist/"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetAllShoplistAndItemsForUser))
 	r.GET(getRoute(serviceName, "/v2/shoplist/:id"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplistAndItemsForUserByShoplistID))
+	r.GET(getRoute(serviceName, "/v2/shoplist/:id/members"), tokenVerifier.VerifyToken([]string{"shoplist"}, shoplistHandler.GetShoplistMembers))
 
 	logger.Info("Starting server on port 8080")
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
