@@ -59,7 +59,7 @@ type Flyer struct {
 	DisclaimerText string   `json:"disclaimer_text"`
 	ImageURL       string   `json:"image_url"`
 	Images         []string `json:"images"`
-	OriginalPrice  int      `json:"original_price"`
+	OriginalPrice  string   `json:"original_price"`
 	PrePriceText   string   `json:"pre_price_text"`
 	PriceText      string   `json:"price_text"`
 	PostPriceText  string   `json:"post_price_text"`

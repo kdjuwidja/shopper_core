@@ -29,7 +29,7 @@ func TestSearchFlyers(t *testing.T) {
 			Brand:         "Fresh Foods",
 			Description:   "Fresh ham sandwich with lettuce and tomato",
 			ImageURL:      "http://example.com/ham-sandwich.jpg",
-			OriginalPrice: 599, // $5.99 in cents
+			OriginalPrice: "5.99", // $5.99 as string
 			StartDateTime: time.Now().Add(-24*time.Hour).Unix() * 1000,
 			EndDateTime:   time.Now().Add(24*time.Hour).Unix() * 1000,
 		},
@@ -39,7 +39,7 @@ func TestSearchFlyers(t *testing.T) {
 			Brand:         "Meat Masters",
 			Description:   "Sliced turkey ham",
 			ImageURL:      "http://example.com/turkey-ham.jpg",
-			OriginalPrice: 499, // $4.99 in cents
+			OriginalPrice: "4.99", // $4.99 as string
 			StartDateTime: time.Now().Add(-24*time.Hour).Unix() * 1000,
 			EndDateTime:   time.Now().Add(24*time.Hour).Unix() * 1000,
 		},
