@@ -6,6 +6,7 @@ import (
 
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/stretchr/testify/assert"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	dbmodel "netherealmstudio.com/m/v2/db"
 	testutil "netherealmstudio.com/m/v2/testUtil"
 )
@@ -158,14 +159,14 @@ func TestGetShoplistItems(t *testing.T) {
 		name            string
 		userID          string
 		shoplistItemIds []int
-		expectedItems   []*dbmodel.ShoplistItem
+		expectedItems   []bizmodels.ShoplistItem
 		expectedError   *MatchError
 	}{
 		{
 			name:            "successful get items from own shoplist",
 			userID:          "test_user",
 			shoplistItemIds: []int{1, 2, 3},
-			expectedItems: []*dbmodel.ShoplistItem{
+			expectedItems: []bizmodels.ShoplistItem{
 				{ID: 1, ItemName: "Item 1", BrandName: "Brand 1"},
 				{ID: 2, ItemName: "Item 2", BrandName: "Brand 2"},
 				{ID: 3, ItemName: "Item 3", BrandName: "Brand 3"},
@@ -176,7 +177,7 @@ func TestGetShoplistItems(t *testing.T) {
 			name:            "successful get items from shared shoplist",
 			userID:          "test_user",
 			shoplistItemIds: []int{6, 7},
-			expectedItems: []*dbmodel.ShoplistItem{
+			expectedItems: []bizmodels.ShoplistItem{
 				{ID: 6, ItemName: "Shared Item 1", BrandName: "Shared Brand 1"},
 				{ID: 7, ItemName: "Shared Item 2", BrandName: "Shared Brand 2"},
 			},

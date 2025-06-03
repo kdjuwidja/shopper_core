@@ -5,10 +5,11 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	"netherealmstudio.com/m/v2/db"
 )
 
-func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]ShoplistMember, *ShoplistError) {
+func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]bizmodels.ShoplistMember, *ShoplistError) {
 	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
 	if shopListErr != nil {
 		return nil, shopListErr
@@ -19,9 +20,9 @@ func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]Shopl
 		return nil, NewShoplistError(ShoplistNotMember, "User is not a member of the shoplist.")
 	}
 
-	result := make([]ShoplistMember, 0)
+	result := make([]bizmodels.ShoplistMember, 0)
 	for _, member := range shopListData.Members {
-		shoplistMember := ShoplistMember{
+		shoplistMember := bizmodels.ShoplistMember{
 			ID:       member.MemberID,
 			Nickname: member.Nickname,
 		}

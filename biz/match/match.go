@@ -7,7 +7,7 @@ import (
 
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 
-	dbmodels "netherealmstudio.com/m/v2/db"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 )
 
 // Helper functions for safely extracting values from raw JSON data
@@ -53,7 +53,7 @@ func getStringArray(rawData map[string]interface{}, key string) []string {
 	return nil
 }
 
-func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context.Context, shoplistItems []*dbmodels.ShoplistItem) (map[int][]*dbmodels.Flyer, error) {
+func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context.Context, shoplistItems []bizmodels.ShoplistItem) (map[int][]*bizmodels.Flyer, error) {
 	now := time.Now().UnixMilli()
 
 	esMultiQuery := elasticsearch.CreateMQuery()
@@ -70,9 +70,9 @@ func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context
 		return nil, err
 	}
 
-	itemToFlyersMap := make(map[int][]*dbmodels.Flyer)
+	itemToFlyersMap := make(map[int][]*bizmodels.Flyer)
 	for i, resultSet := range results {
-		flyers := make([]*dbmodels.Flyer, 0)
+		flyers := make([]*bizmodels.Flyer, 0)
 		for _, result := range resultSet {
 			// First unmarshal into a map to handle null fields
 			var rawData map[string]interface{}
@@ -81,7 +81,7 @@ func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context
 			}
 
 			// Create a new Flyer and populate fields individually
-			flyer := &dbmodels.Flyer{}
+			flyer := &bizmodels.Flyer{}
 
 			// Populate fields using the helper functions
 			flyer.Store = getString(rawData, "store")
@@ -89,9 +89,7 @@ func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context
 			flyer.ProductName = getString(rawData, "product_name")
 			flyer.Description = getString(rawData, "description")
 			flyer.DisclaimerText = getString(rawData, "disclaimer_text")
-			flyer.ImageURL = getString(rawData, "image_url")
-			flyer.Images = getStringArray(rawData, "images")
-			flyer.OriginalPrice = getInt(rawData, "original_price")
+			flyer.OriginalPrice = getInt64(rawData, "original_price")
 			flyer.PrePriceText = getString(rawData, "pre_price_text")
 			flyer.PriceText = getString(rawData, "price_text")
 			flyer.PostPriceText = getString(rawData, "post_price_text")

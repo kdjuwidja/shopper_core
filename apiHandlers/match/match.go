@@ -52,8 +52,6 @@ func (h *MatchHandler) MatchShoplistItemsWithFlyer(c *gin.Context) {
 				"product_name":    flyer.ProductName,
 				"description":     flyer.Description,
 				"disclaimer_text": flyer.DisclaimerText,
-				"image_url":       flyer.ImageURL,
-				"images":          flyer.Images,
 				"original_price":  flyer.OriginalPrice,
 				"pre_price_text":  flyer.PrePriceText,
 				"price_text":      flyer.PriceText,

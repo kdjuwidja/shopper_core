@@ -3,10 +3,11 @@ package bizmatch
 import (
 	"context"
 
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	dbmodels "netherealmstudio.com/m/v2/db"
 )
 
-func (b *MatchShoplistItemsWithFlyerBiz) GetShoplistItems(ctx context.Context, userId string, shoplistItemIds []int) ([]*dbmodels.ShoplistItem, *MatchError) {
+func (b *MatchShoplistItemsWithFlyerBiz) GetShoplistItems(ctx context.Context, userId string, shoplistItemIds []int) ([]bizmodels.ShoplistItem, *MatchError) {
 	if len(shoplistItemIds) == 0 {
 		return nil, NewMatchError(MatchItemIdNotProvided, "No item IDs provided.")
 	}
@@ -29,5 +30,14 @@ func (b *MatchShoplistItemsWithFlyerBiz) GetShoplistItems(ctx context.Context, u
 		return nil, NewMatchError(MatchShoplistItemNotFound, "No shoplist items found.")
 	}
 
-	return shoplistItems, nil
+	shoplistItemsBiz := make([]bizmodels.ShoplistItem, 0)
+	for _, shoplistItem := range shoplistItems {
+		shoplistItemsBiz = append(shoplistItemsBiz, bizmodels.ShoplistItem{
+			ID:        shoplistItem.ID,
+			ItemName:  shoplistItem.ItemName,
+			BrandName: shoplistItem.BrandName,
+		})
+	}
+
+	return shoplistItemsBiz, nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/kdjuwidja/aishoppercommon/elasticsearch"
 	"github.com/stretchr/testify/assert"
-	"netherealmstudio.com/m/v2/db"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 )
 
 func setupMatchTestData(t *testing.T, esc *elasticsearch.ElasticsearchClient) {
@@ -117,13 +117,13 @@ func TestMatchShoplistItemsWithFlyer(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		shoplistItems   []*db.ShoplistItem
+		shoplistItems   []bizmodels.ShoplistItem
 		expectedError   bool
 		expectedMatches int
 	}{
 		{
 			name: "single item with brand",
-			shoplistItems: []*db.ShoplistItem{
+			shoplistItems: []bizmodels.ShoplistItem{
 				{
 					ID:        1,
 					BrandName: "Test Brand",
@@ -135,7 +135,7 @@ func TestMatchShoplistItemsWithFlyer(t *testing.T) {
 		},
 		{
 			name: "single item without brand",
-			shoplistItems: []*db.ShoplistItem{
+			shoplistItems: []bizmodels.ShoplistItem{
 				{
 					ID:        2,
 					BrandName: "",
@@ -147,7 +147,7 @@ func TestMatchShoplistItemsWithFlyer(t *testing.T) {
 		},
 		{
 			name: "multiple items with brands",
-			shoplistItems: []*db.ShoplistItem{
+			shoplistItems: []bizmodels.ShoplistItem{
 				{
 					ID:        3,
 					BrandName: "Brand A",
@@ -169,7 +169,7 @@ func TestMatchShoplistItemsWithFlyer(t *testing.T) {
 		},
 		{
 			name: "mixed items with and without brands",
-			shoplistItems: []*db.ShoplistItem{
+			shoplistItems: []bizmodels.ShoplistItem{
 				{
 					ID:        6,
 					BrandName: "Brand A",
@@ -191,7 +191,7 @@ func TestMatchShoplistItemsWithFlyer(t *testing.T) {
 		},
 		{
 			name:            "empty shoplist items",
-			shoplistItems:   []*db.ShoplistItem{},
+			shoplistItems:   []bizmodels.ShoplistItem{},
 			expectedError:   true,
 			expectedMatches: 0,
 		},

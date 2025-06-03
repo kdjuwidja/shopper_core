@@ -5,25 +5,12 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/kdjuwidja/aishoppercommon/logger"
 
 	"netherealmstudio.com/m/v2/apiHandlers"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	bizshoplist "netherealmstudio.com/m/v2/biz/shoplist"
 )
-
-type ShoplistHandler struct {
-	shoplistBiz     *bizshoplist.ShoplistBiz
-	responseFactory apiHandlers.ResponseFactory
-}
-
-// Dependency Injection for ShoplistHandler
-func InitializeShoplistHandler(dbPool db.MySQLConnectionPool, responseFactory apiHandlers.ResponseFactory) *ShoplistHandler {
-	return &ShoplistHandler{
-		shoplistBiz:     bizshoplist.InitializeShoplistBiz(dbPool),
-		responseFactory: responseFactory,
-	}
-}
 
 // CreateShoplist creates a new shoplist
 // @Summary Create a new shoplist
@@ -187,7 +174,6 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 			BrandName string `json:"brand_name"`
 			ExtraInfo string `json:"extra_info"`
 			IsBought  bool   `json:"is_bought"`
-			Thumbnail string `json:"thumbnail"`
 		} `json:"items"`
 	}
 
@@ -208,7 +194,6 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 		BrandName string `json:"brand_name"`
 		ExtraInfo string `json:"extra_info"`
 		IsBought  bool   `json:"is_bought"`
-		Thumbnail string `json:"thumbnail"`
 	}, 0)
 	for _, item := range shoplistItems {
 		responseItems = append(responseItems, struct {
@@ -217,14 +202,12 @@ func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
 			BrandName string `json:"brand_name"`
 			ExtraInfo string `json:"extra_info"`
 			IsBought  bool   `json:"is_bought"`
-			Thumbnail string `json:"thumbnail"`
 		}{
 			ID:        item.ID,
 			ItemName:  item.ItemName,
 			BrandName: item.BrandName,
 			ExtraInfo: item.ExtraInfo,
 			IsBought:  item.IsBought,
-			Thumbnail: item.Thumbnail,
 		})
 	}
 
@@ -325,42 +308,60 @@ func (h *ShoplistHandler) GetAllShoplistAndItemsForUser(c *gin.Context) {
 		return
 	}
 
+	shoplistItems := make([]bizmodels.ShoplistItem, 0)
+	for _, shoplist := range shoplists {
+		shoplistItems = append(shoplistItems, shoplist.Items...)
+	}
+
+	flyers, matchErr := h.matchBiz.MatchShoplistItemsWithFlyer(c.Request.Context(), shoplistItems)
+	if matchErr != nil {
+		logger.Errorf("Failed to match shoplist items with flyers: %v", matchErr)
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		return
+	}
+
 	// Transform the response to match the desired format
 	response := make([]ShoplistResponse, 0)
 	for _, shoplist := range shoplists {
 		shoplistResp := ShoplistResponse{
 			ID:   shoplist.ID,
 			Name: shoplist.Name,
-			Owner: struct {
-				ID       string `json:"id"`
-				Nickname string `json:"nickname"`
-			}{
+			Owner: OwnerResponse{
 				ID:       shoplist.OwnerID,
 				Nickname: shoplist.OwnerNickname,
 			},
-			Items: make([]struct {
-				ID        int    `json:"id"`
-				Name      string `json:"name"`
-				BrandName string `json:"brand_name"`
-				ExtraInfo string `json:"extra_info"`
-				IsBought  bool   `json:"is_bought"`
-			}, 0),
+			Items: make([]ItemResponse, 0),
 		}
 
 		// Add items for this shoplist
 		for _, item := range shoplist.Items {
-			shoplistResp.Items = append(shoplistResp.Items, struct {
-				ID        int    `json:"id"`
-				Name      string `json:"name"`
-				BrandName string `json:"brand_name"`
-				ExtraInfo string `json:"extra_info"`
-				IsBought  bool   `json:"is_bought"`
-			}{
+			flyerResp := make([]FlyerResponse, 0)
+
+			flyersForItem, exists := flyers[item.ID]
+			if exists {
+				for _, flyer := range flyersForItem {
+					flyerResp = append(flyerResp, FlyerResponse{
+						Store:         flyer.Store,
+						Brand:         flyer.Brand,
+						StartDate:     flyer.StartDateTime,
+						EndDate:       flyer.EndDateTime,
+						ProductName:   flyer.ProductName,
+						Description:   flyer.Description,
+						OriginalPrice: flyer.OriginalPrice,
+						PrePriceText:  flyer.PrePriceText,
+						PriceText:     flyer.PriceText,
+						PostPriceText: flyer.PostPriceText,
+					})
+				}
+			}
+
+			shoplistResp.Items = append(shoplistResp.Items, ItemResponse{
 				ID:        item.ID,
 				Name:      item.ItemName,
 				BrandName: item.BrandName,
 				ExtraInfo: item.ExtraInfo,
 				IsBought:  item.IsBought,
+				Flyer:     flyerResp,
 			})
 		}
 
@@ -391,40 +392,53 @@ func (h *ShoplistHandler) GetShoplistAndItemsForUserByShoplistID(c *gin.Context)
 		return
 	}
 
+	flyers, matchErr := h.matchBiz.MatchShoplistItemsWithFlyer(c.Request.Context(), shoplist.Items)
+	if matchErr != nil {
+		logger.Errorf("GetShoplistAndItemsForUserByShoplistID: Failed to match shoplist items with flyers. Error: %s", matchErr.Error())
+		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+		return
+	}
+
 	// Transform the shoplist into the response format
 	shoplistResp := ShoplistResponse{
 		ID:   shoplist.ID,
 		Name: shoplist.Name,
-		Owner: struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		}{
+		Owner: OwnerResponse{
 			ID:       shoplist.OwnerID,
 			Nickname: shoplist.OwnerNickname,
 		},
-		Items: make([]struct {
-			ID        int    `json:"id"`
-			Name      string `json:"name"`
-			BrandName string `json:"brand_name"`
-			ExtraInfo string `json:"extra_info"`
-			IsBought  bool   `json:"is_bought"`
-		}, 0),
+		Items: make([]ItemResponse, 0),
 	}
 
 	// Add items for this shoplist
 	for _, item := range shoplist.Items {
-		shoplistResp.Items = append(shoplistResp.Items, struct {
-			ID        int    `json:"id"`
-			Name      string `json:"name"`
-			BrandName string `json:"brand_name"`
-			ExtraInfo string `json:"extra_info"`
-			IsBought  bool   `json:"is_bought"`
-		}{
+		flyerResp := make([]FlyerResponse, 0)
+
+		flyersForItem, exists := flyers[item.ID]
+		if exists {
+			for _, flyer := range flyersForItem {
+				flyerResp = append(flyerResp, FlyerResponse{
+					Store:         flyer.Store,
+					Brand:         flyer.Brand,
+					StartDate:     flyer.StartDateTime,
+					EndDate:       flyer.EndDateTime,
+					ProductName:   flyer.ProductName,
+					Description:   flyer.Description,
+					OriginalPrice: flyer.OriginalPrice,
+					PrePriceText:  flyer.PrePriceText,
+					PriceText:     flyer.PriceText,
+					PostPriceText: flyer.PostPriceText,
+				})
+			}
+		}
+
+		shoplistResp.Items = append(shoplistResp.Items, ItemResponse{
 			ID:        item.ID,
 			Name:      item.ItemName,
 			BrandName: item.BrandName,
 			ExtraInfo: item.ExtraInfo,
 			IsBought:  item.IsBought,
+			Flyer:     flyerResp,
 		})
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	"netherealmstudio.com/m/v2/db"
 )
 
@@ -132,7 +133,7 @@ func (b *ShoplistBiz) GetAllShoplists(userID string) ([]GetAllShoplistData, *Sho
 }
 
 // GetShoplist retrieves a shoplist by ID
-func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []ShoplistItem, []ShoplistMember, *ShoplistError) {
+func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*bizmodels.Shoplist, []bizmodels.ShoplistItem, []bizmodels.ShoplistMember, *ShoplistError) {
 	if !b.checkShoplistMembershipFromDB(userID, shoplistID) {
 		return nil, nil, nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
 	}
@@ -146,10 +147,10 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 	}
 	defer rows.Close()
 
-	var shoplistData Shoplist
-	itemMap := make(map[int]ShoplistItem)
+	var shoplistData bizmodels.Shoplist
+	itemMap := make(map[int]bizmodels.ShoplistItem)
 	itemIdList := make([]int, 0)
-	memberMap := make(map[string]ShoplistMember)
+	memberMap := make(map[string]bizmodels.ShoplistMember)
 	memberIdList := make([]string, 0)
 
 	for rows.Next() {
@@ -166,13 +167,12 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 		// Item can be nil if the shoplist is empty
 		if r.ShopListItemID != nil {
 			if _, exists := itemMap[*r.ShopListItemID]; !exists {
-				itemMap[*r.ShopListItemID] = ShoplistItem{
+				itemMap[*r.ShopListItemID] = bizmodels.ShoplistItem{
 					ID:        *r.ShopListItemID,
 					ItemName:  *r.ShopListItemName,
 					BrandName: *r.ShopListItemBrandName,
 					ExtraInfo: *r.ShopListItemExtraInfo,
 					IsBought:  *r.ShopListItemIsBought,
-					Thumbnail: *r.ShopListItemThumbnail,
 				}
 				itemIdList = append(itemIdList, *r.ShopListItemID)
 			}
@@ -180,7 +180,7 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 
 		// At least the owner should be in the member list, so we don't need to check if the member exists
 		if _, exists := memberMap[r.ShopListMemberID]; !exists {
-			memberMap[r.ShopListMemberID] = ShoplistMember{
+			memberMap[r.ShopListMemberID] = bizmodels.ShoplistMember{
 				ID:       r.ShopListMemberID,
 				Nickname: r.ShopListMemberNickname,
 			}
@@ -190,13 +190,13 @@ func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*Shoplist, []S
 
 	shoplistData.OwnerNickname = memberMap[shoplistData.OwnerID].Nickname
 	// Convert the map to slices
-	items := make([]ShoplistItem, 0, len(itemMap))
+	items := make([]bizmodels.ShoplistItem, 0, len(itemMap))
 	sort.Ints(itemIdList)
 	for _, itemId := range itemIdList {
 		items = append(items, itemMap[itemId])
 	}
 
-	members := make([]ShoplistMember, 0, len(memberMap))
+	members := make([]bizmodels.ShoplistMember, 0, len(memberMap))
 	sort.Strings(memberIdList)
 	for _, memberId := range memberIdList {
 		members = append(members, memberMap[memberId])
@@ -231,7 +231,7 @@ func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string)
 	return nil
 }
 
-func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID string) ([]*Shoplist, *ShoplistError) {
+func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID string) ([]*bizmodels.Shoplist, *ShoplistError) {
 	type QueryResult struct {
 		ShopListID    int     `gorm:"column:shop_list_id"`
 		ShopListName  string  `gorm:"column:shop_list_name"`
@@ -269,24 +269,24 @@ func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID 
 	}
 
 	// Create a map to store unique shoplists
-	shoplistMap := make(map[int]*Shoplist)
+	shoplistMap := make(map[int]*bizmodels.Shoplist)
 
 	// Process results
 	for _, r := range results {
 		// Add shoplist if not exists
 		if _, exists := shoplistMap[r.ShopListID]; !exists {
-			shoplistMap[r.ShopListID] = &Shoplist{
+			shoplistMap[r.ShopListID] = &bizmodels.Shoplist{
 				ID:            r.ShopListID,
 				Name:          r.ShopListName,
 				OwnerID:       r.OwnerID,
 				OwnerNickname: r.OwnerNickname,
-				Items:         make([]ShoplistItem, 0),
+				Items:         make([]bizmodels.ShoplistItem, 0),
 			}
 		}
 
 		// Add item if exists
 		if r.ItemID != nil {
-			item := ShoplistItem{
+			item := bizmodels.ShoplistItem{
 				ID:         *r.ItemID,
 				ShopListID: r.ShopListID,
 				ItemName:   *r.ItemName,
@@ -299,7 +299,7 @@ func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID 
 	}
 
 	// Convert map to slice
-	shoplists := make([]*Shoplist, 0, len(shoplistMap))
+	shoplists := make([]*bizmodels.Shoplist, 0, len(shoplistMap))
 	for _, shoplist := range shoplistMap {
 		shoplists = append(shoplists, shoplist)
 	}
@@ -312,7 +312,7 @@ func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID 
 	return shoplists, nil
 }
 
-func (b *ShoplistBiz) GetShoplistAndItems(ctx context.Context, userID string, shoplistID int) (*Shoplist, *ShoplistError) {
+func (b *ShoplistBiz) GetShoplistAndItems(ctx context.Context, userID string, shoplistID int) (*bizmodels.Shoplist, *ShoplistError) {
 	type QueryResult struct {
 		ShopListID    int     `gorm:"column:shop_list_id"`
 		ShopListName  string  `gorm:"column:shop_list_name"`
@@ -351,18 +351,18 @@ func (b *ShoplistBiz) GetShoplistAndItems(ctx context.Context, userID string, sh
 	}
 
 	// Create shoplist from first row (all rows have same shoplist info)
-	shoplist := &Shoplist{
+	shoplist := &bizmodels.Shoplist{
 		ID:            results[0].ShopListID,
 		Name:          results[0].ShopListName,
 		OwnerID:       results[0].OwnerID,
 		OwnerNickname: results[0].OwnerNickname,
-		Items:         make([]ShoplistItem, 0),
+		Items:         make([]bizmodels.ShoplistItem, 0),
 	}
 
 	// Add items to shoplist
 	for _, r := range results {
 		if r.ItemID != nil {
-			shoplist.Items = append(shoplist.Items, ShoplistItem{
+			shoplist.Items = append(shoplist.Items, bizmodels.ShoplistItem{
 				ID:         *r.ItemID,
 				ShopListID: r.ShopListID,
 				ItemName:   *r.ItemName,

@@ -6,6 +6,7 @@ import (
 
 	"github.com/kdjuwidja/aishoppercommon/db"
 	"github.com/stretchr/testify/assert"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	dbmodel "netherealmstudio.com/m/v2/db"
 	testutil "netherealmstudio.com/m/v2/testUtil"
 )
@@ -157,19 +158,19 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 	tests := []struct {
 		name              string
 		userID            string
-		expectedShoplists []*Shoplist
+		expectedShoplists []*bizmodels.Shoplist
 		expectedError     *ShoplistError
 	}{
 		{
 			name:   "successful get all items for user",
 			userID: "test_user",
-			expectedShoplists: []*Shoplist{
+			expectedShoplists: []*bizmodels.Shoplist{
 				{
 					ID:            1,
 					Name:          "Test Shoplist 1",
 					OwnerID:       "test_user",
 					OwnerNickname: "Test User",
-					Items: []ShoplistItem{
+					Items: []bizmodels.ShoplistItem{
 						{ID: 1, ShopListID: 1, ItemName: "Item 1", BrandName: "Brand 1", ExtraInfo: "Info 1", IsBought: false},
 						{ID: 2, ShopListID: 1, ItemName: "Item 2", BrandName: "Brand 2", ExtraInfo: "Info 2", IsBought: true},
 						{ID: 3, ShopListID: 1, ItemName: "Item 3", BrandName: "Brand 3", ExtraInfo: "Info 3", IsBought: false},
@@ -180,7 +181,7 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 					Name:          "Test Shoplist 3",
 					OwnerID:       "test_user2",
 					OwnerNickname: "Test User 2",
-					Items: []ShoplistItem{
+					Items: []bizmodels.ShoplistItem{
 						{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
 						{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
 					},
@@ -191,13 +192,13 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 		{
 			name:   "successful get all items for second user",
 			userID: "test_user2",
-			expectedShoplists: []*Shoplist{
+			expectedShoplists: []*bizmodels.Shoplist{
 				{
 					ID:            2,
 					Name:          "Test Shoplist 2",
 					OwnerID:       "test_user2",
 					OwnerNickname: "Test User 2",
-					Items: []ShoplistItem{
+					Items: []bizmodels.ShoplistItem{
 						{ID: 4, ShopListID: 2, ItemName: "Item 4", BrandName: "Brand 4", ExtraInfo: "Info 4", IsBought: false},
 						{ID: 5, ShopListID: 2, ItemName: "Item 5", BrandName: "Brand 5", ExtraInfo: "Info 5", IsBought: true},
 					},
@@ -207,7 +208,7 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 					Name:          "Test Shoplist 3",
 					OwnerID:       "test_user2",
 					OwnerNickname: "Test User 2",
-					Items: []ShoplistItem{
+					Items: []bizmodels.ShoplistItem{
 						{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
 						{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
 					},
@@ -337,19 +338,19 @@ func TestGetShoplistAndItems(t *testing.T) {
 		name             string
 		userID           string
 		shoplistID       int
-		expectedShoplist *Shoplist
+		expectedShoplist *bizmodels.Shoplist
 		expectedError    *ShoplistError
 	}{
 		{
 			name:       "successful get shoplist and items for owner",
 			userID:     "test_user",
 			shoplistID: 1,
-			expectedShoplist: &Shoplist{
+			expectedShoplist: &bizmodels.Shoplist{
 				ID:            1,
 				Name:          "Test Shoplist 1",
 				OwnerID:       "test_user",
 				OwnerNickname: "Test User",
-				Items: []ShoplistItem{
+				Items: []bizmodels.ShoplistItem{
 					{ID: 1, ShopListID: 1, ItemName: "Item 1", BrandName: "Brand 1", ExtraInfo: "Info 1", IsBought: false},
 					{ID: 2, ShopListID: 1, ItemName: "Item 2", BrandName: "Brand 2", ExtraInfo: "Info 2", IsBought: true},
 					{ID: 3, ShopListID: 1, ItemName: "Item 3", BrandName: "Brand 3", ExtraInfo: "Info 3", IsBought: false},
@@ -361,12 +362,12 @@ func TestGetShoplistAndItems(t *testing.T) {
 			name:       "successful get shared shoplist and items for member",
 			userID:     "test_user",
 			shoplistID: 3,
-			expectedShoplist: &Shoplist{
+			expectedShoplist: &bizmodels.Shoplist{
 				ID:            3,
 				Name:          "Test Shoplist 3",
 				OwnerID:       "test_user2",
 				OwnerNickname: "Test User 2",
-				Items: []ShoplistItem{
+				Items: []bizmodels.ShoplistItem{
 					{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
 					{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
 				},

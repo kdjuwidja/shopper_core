@@ -16,6 +16,9 @@ import (
 	apihandlersuser "netherealmstudio.com/m/v2/apiHandlers/user"
 	dbmodel "netherealmstudio.com/m/v2/db"
 
+	bizmatch "netherealmstudio.com/m/v2/biz/match"
+	bizshoplist "netherealmstudio.com/m/v2/biz/shoplist"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -80,10 +83,14 @@ func main() {
 	// Initialize Token Verifier
 	tokenVerifier := apiHandlers.InitializeTokenVerifier(*rf)
 
+	// IntializeBiz
+	shoplistBiz := bizshoplist.InitializeShoplistBiz(*mysqlConn)
+	matchBiz := bizmatch.NewMatchShoplistItemsWithFlyerBiz(esc, mysqlConn)
+
 	// Initialize API Handlers
 	healthHandler := apiHandlersHealth.InitializeHealthHandler()
 	userProfileHandler := apihandlersuser.InitializeUserProfileHandler(*mysqlConn, *rf)
-	shoplistHandler := apiHandlersshoplist.InitializeShoplistHandler(*mysqlConn, *rf)
+	shoplistHandler := apiHandlersshoplist.InitializeShoplistHandler(*mysqlConn, shoplistBiz, matchBiz, *rf)
 	searchHandler := apiHandlerssearch.InitializeSearchHandler(*esc, *rf)
 	matchHandler := apiHandlersmatch.InitializeMatchHandler(*esc, *mysqlConn, *rf)
 

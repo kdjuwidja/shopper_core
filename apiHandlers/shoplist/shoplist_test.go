@@ -1310,6 +1310,7 @@ func TestGetAllShoplistAndItemsForUser(t *testing.T) {
 							"brand_name": "Test Brand 1",
 							"extra_info": "Test Info 1",
 							"is_bought":  false,
+							"flyer":      []interface{}{},
 						},
 						map[string]interface{}{
 							"id":         float64(2),
@@ -1317,6 +1318,7 @@ func TestGetAllShoplistAndItemsForUser(t *testing.T) {
 							"brand_name": "Test Brand 2",
 							"extra_info": "Test Info 2",
 							"is_bought":  true,
+							"flyer":      []interface{}{},
 						},
 					},
 				},
@@ -1362,6 +1364,7 @@ func TestGetAllShoplistAndItemsForUser(t *testing.T) {
 							"brand_name": "Test Brand 1",
 							"extra_info": "Test Info 1",
 							"is_bought":  false,
+							"flyer":      []interface{}{},
 						},
 						map[string]interface{}{
 							"id":         float64(2),
@@ -1369,6 +1372,7 @@ func TestGetAllShoplistAndItemsForUser(t *testing.T) {
 							"brand_name": "Test Brand 2",
 							"extra_info": "Test Info 2",
 							"is_bought":  true,
+							"flyer":      []interface{}{},
 						},
 					},
 				},
@@ -1386,6 +1390,7 @@ func TestGetAllShoplistAndItemsForUser(t *testing.T) {
 							"brand_name": "Test Brand 3",
 							"extra_info": "Test Info 3",
 							"is_bought":  false,
+							"flyer":      []interface{}{},
 						},
 					},
 				},
@@ -1512,6 +1517,7 @@ func TestGetShoplistAndItemsForUserByShoplistID(t *testing.T) {
 					"brand_name": "Test Brand 1",
 					"extra_info": "Test Info 1",
 					"is_bought":  false,
+					"flyer":      []interface{}{},
 				},
 				map[string]interface{}{
 					"id":         float64(2),
@@ -1519,6 +1525,7 @@ func TestGetShoplistAndItemsForUserByShoplistID(t *testing.T) {
 					"brand_name": "Test Brand 2",
 					"extra_info": "Test Info 2",
 					"is_bought":  true,
+					"flyer":      []interface{}{},
 				},
 			},
 		}
@@ -1561,6 +1568,7 @@ func TestGetShoplistAndItemsForUserByShoplistID(t *testing.T) {
 					"brand_name": "Test Brand 1",
 					"extra_info": "Test Info 1",
 					"is_bought":  false,
+					"flyer":      []interface{}{},
 				},
 				map[string]interface{}{
 					"id":         float64(2),
@@ -1568,6 +1576,7 @@ func TestGetShoplistAndItemsForUserByShoplistID(t *testing.T) {
 					"brand_name": "Test Brand 2",
 					"extra_info": "Test Info 2",
 					"is_bought":  true,
+					"flyer":      []interface{}{},
 				},
 			},
 		}

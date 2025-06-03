@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	bizmodels "netherealmstudio.com/m/v2/biz"
 	testutil "netherealmstudio.com/m/v2/testUtil"
 )
 
@@ -16,14 +17,14 @@ func TestGetShoplistMembers(t *testing.T) {
 		name            string
 		userID          string
 		shoplistID      int
-		expectedMembers []ShoplistMember
+		expectedMembers []bizmodels.ShoplistMember
 		expectedError   *ShoplistError
 	}{
 		{
 			name:       "successful get members for owner",
 			userID:     "test_user",
 			shoplistID: 1,
-			expectedMembers: []ShoplistMember{
+			expectedMembers: []bizmodels.ShoplistMember{
 				{
 					ID:       "test_user",
 					Nickname: "Test User",
@@ -35,7 +36,7 @@ func TestGetShoplistMembers(t *testing.T) {
 			name:       "successful get members for shared shoplist",
 			userID:     "test_user",
 			shoplistID: 3,
-			expectedMembers: []ShoplistMember{
+			expectedMembers: []bizmodels.ShoplistMember{
 				{
 					ID:       "test_user",
 					Nickname: "Test User",
@@ -74,7 +75,7 @@ func TestGetShoplistMembers(t *testing.T) {
 				assert.Equal(t, len(tt.expectedMembers), len(members))
 
 				// Create a map of expected members for easier comparison
-				expectedMemberMap := make(map[string]ShoplistMember)
+				expectedMemberMap := make(map[string]bizmodels.ShoplistMember)
 				for _, member := range tt.expectedMembers {
 					expectedMemberMap[member.ID] = member
 				}
