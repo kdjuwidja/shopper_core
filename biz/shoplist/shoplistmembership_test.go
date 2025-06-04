@@ -1,6 +1,7 @@
 package bizshoplist
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func TestGetShoplistMembers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			members, err := biz.GetShoplistMembers(tt.userID, tt.shoplistID)
+			members, err := biz.GetShoplistMembers(context.Background(), tt.userID, tt.shoplistID)
 			if tt.expectedError != nil {
 				assert.Equal(t, tt.expectedError.ErrCode, err.ErrCode)
 				assert.Nil(t, members)

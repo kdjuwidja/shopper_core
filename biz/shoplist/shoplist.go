@@ -9,15 +9,15 @@ import (
 )
 
 // checkShoplistMembership checks if a user is a member of a shoplist
-func (b *ShoplistBiz) checkShoplistMembershipFromDB(userID string, shoplistID int) bool {
+func (b *ShoplistBiz) checkShoplistMembershipFromDB(ctx context.Context, userID string, shoplistID int) bool {
 	var member db.ShoplistMember
-	err := b.dbPool.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
+	err := b.dbPool.GetDB().WithContext(ctx).Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).First(&member).Error
 	return err == nil
 }
 
 // helper function to get shoplist and members relationship and transform the data into struct for easier use
-func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *ShoplistError) {
-	rows, err := b.dbPool.GetDB().Raw(`SELECT shop_list_id, owner_id, member_id, nickname as member_nickname FROM users RIGHT JOIN
+func (b *ShoplistBiz) GetShoplistWithMembers(ctx context.Context, shoplistID int) (*ShoplistData, *ShoplistError) {
+	rows, err := b.dbPool.GetDB().WithContext(ctx).Raw(`SELECT shop_list_id, owner_id, member_id, nickname as member_nickname FROM users RIGHT JOIN
 		(SELECT shoplists.id as shop_list_id, shoplists.owner_id as owner_id, shoplist_members.member_id as member_id from shoplists 
 		LEFT JOIN shoplist_members ON shoplists.id = shoplist_members.shop_list_id WHERE shoplists.id = ?) as tbl1 ON tbl1.member_id = users.id`, shoplistID).Rows()
 
@@ -70,7 +70,7 @@ func (b *ShoplistBiz) GetShoplistWithMembers(shoplistID int) (*ShoplistData, *Sh
 }
 
 // CreateShoplist creates a new shoplist and adds the owner as a member
-func (b *ShoplistBiz) CreateShoplist(ownerID string, name string) *ShoplistError {
+func (b *ShoplistBiz) CreateShoplist(ctx context.Context, ownerID string, name string) *ShoplistError {
 	// Create new shoplist
 	shoplist := db.Shoplist{
 		OwnerID: ownerID,
@@ -78,7 +78,7 @@ func (b *ShoplistBiz) CreateShoplist(ownerID string, name string) *ShoplistError
 	}
 
 	// Start a new transaction
-	tx := b.dbPool.GetDB().Begin()
+	tx := b.dbPool.GetDB().WithContext(ctx).Begin()
 
 	// Save to database
 	if err := tx.Create(&shoplist).Error; err != nil {
@@ -105,110 +105,10 @@ func (b *ShoplistBiz) CreateShoplist(ownerID string, name string) *ShoplistError
 	return nil
 }
 
-// GetAllShoplists retrieves all shoplists
-func (b *ShoplistBiz) GetAllShoplists(userID string) ([]GetAllShoplistData, *ShoplistError) {
-	// Get all shoplists where user is a member
-	rows, err := b.dbPool.GetDB().Raw(`
-		select shoplists.id as id, shoplists.name as name, users.id as owner_id, users.nickname as owner_nickname from shoplists
-		left join users on shoplists.owner_id = users.id
-		where shoplists.id in (select shop_list_id from shoplist_members where member_id=?);
-	`, userID).Rows()
-
-	if err != nil {
-		return nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
-	}
-	defer rows.Close()
-
-	var shoplistData []GetAllShoplistData
-	for rows.Next() {
-		var r GetAllShoplistData
-		err := rows.Scan(&r.ID, &r.Name, &r.OwnerID, &r.OwnerNickname)
-		if err != nil {
-			return nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
-		}
-		shoplistData = append(shoplistData, r)
-	}
-
-	return shoplistData, nil
-}
-
-// GetShoplist retrieves a shoplist by ID
-func (b *ShoplistBiz) GetShoplist(userID string, shoplistID int) (*bizmodels.Shoplist, []bizmodels.ShoplistItem, []bizmodels.ShoplistMember, *ShoplistError) {
-	if !b.checkShoplistMembershipFromDB(userID, shoplistID) {
-		return nil, nil, nil, NewShoplistError(ShoplistNotFound, "Shoplist not found.")
-	}
-
-	rows, err := b.dbPool.GetDB().Raw(`SELECT shoplists.id as shop_list_id, shoplists.name as shop_list_name, owner_id, shoplist_items.id as shop_list_item_id, item_name, brand_name, extra_info, is_bought, thumbnail, member_id, member_nickname FROM shoplists
-		LEFT JOIN shoplist_items on shoplist_items.shop_list_id = shoplists.id
-		LEFT JOIN (SELECT shop_list_id, member_id, nickname as member_nickname from shoplist_members left join users on shoplist_members.member_id = users.id) as tbl1 ON tbl1.shop_list_id = shoplists.id
-		where shoplists.id = ?;`, shoplistID).Rows()
-	if err != nil {
-		return nil, nil, nil, NewShoplistError(ShoplistNotFound, err.Error())
-	}
-	defer rows.Close()
-
-	var shoplistData bizmodels.Shoplist
-	itemMap := make(map[int]bizmodels.ShoplistItem)
-	itemIdList := make([]int, 0)
-	memberMap := make(map[string]bizmodels.ShoplistMember)
-	memberIdList := make([]string, 0)
-
-	for rows.Next() {
-		var r GetShoplistData
-		err := rows.Scan(&r.ID, &r.Name, &r.OwnerId, &r.ShopListItemID, &r.ShopListItemName, &r.ShopListItemBrandName, &r.ShopListItemExtraInfo, &r.ShopListItemIsBought, &r.ShopListItemThumbnail, &r.ShopListMemberID, &r.ShopListMemberNickname)
-		if err != nil {
-			return nil, nil, nil, NewShoplistError(ShoplistFailedToProcess, err.Error())
-		}
-
-		shoplistData.ID = r.ID
-		shoplistData.Name = r.Name
-		shoplistData.OwnerID = r.OwnerId
-
-		// Item can be nil if the shoplist is empty
-		if r.ShopListItemID != nil {
-			if _, exists := itemMap[*r.ShopListItemID]; !exists {
-				itemMap[*r.ShopListItemID] = bizmodels.ShoplistItem{
-					ID:        *r.ShopListItemID,
-					ItemName:  *r.ShopListItemName,
-					BrandName: *r.ShopListItemBrandName,
-					ExtraInfo: *r.ShopListItemExtraInfo,
-					IsBought:  *r.ShopListItemIsBought,
-				}
-				itemIdList = append(itemIdList, *r.ShopListItemID)
-			}
-		}
-
-		// At least the owner should be in the member list, so we don't need to check if the member exists
-		if _, exists := memberMap[r.ShopListMemberID]; !exists {
-			memberMap[r.ShopListMemberID] = bizmodels.ShoplistMember{
-				ID:       r.ShopListMemberID,
-				Nickname: r.ShopListMemberNickname,
-			}
-			memberIdList = append(memberIdList, r.ShopListMemberID)
-		}
-	}
-
-	shoplistData.OwnerNickname = memberMap[shoplistData.OwnerID].Nickname
-	// Convert the map to slices
-	items := make([]bizmodels.ShoplistItem, 0, len(itemMap))
-	sort.Ints(itemIdList)
-	for _, itemId := range itemIdList {
-		items = append(items, itemMap[itemId])
-	}
-
-	members := make([]bizmodels.ShoplistMember, 0, len(memberMap))
-	sort.Strings(memberIdList)
-	for _, memberId := range memberIdList {
-		members = append(members, memberMap[memberId])
-	}
-
-	return &shoplistData, items, members, nil
-}
-
 // UpdateShoplist updates a shoplist's name
-func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string) *ShoplistError {
+func (b *ShoplistBiz) UpdateShoplist(ctx context.Context, userID string, shoplistID int, name string) *ShoplistError {
 
-	shoplistMembership, err := b.GetShoplistWithMembers(shoplistID)
+	shoplistMembership, err := b.GetShoplistWithMembers(ctx, shoplistID)
 	if err != nil {
 		return err
 	}
@@ -224,7 +124,7 @@ func (b *ShoplistBiz) UpdateShoplist(userID string, shoplistID int, name string)
 	}
 
 	// Update shoplist name
-	if err := b.dbPool.GetDB().Model(&db.Shoplist{}).Where("id = ?", shoplistID).Update("name", name).Error; err != nil {
+	if err := b.dbPool.GetDB().WithContext(ctx).Model(&db.Shoplist{}).Where("id = ?", shoplistID).Update("name", name).Error; err != nil {
 		return NewShoplistError(ShoplistFailedToUpdate, err.Error())
 	}
 
@@ -247,18 +147,18 @@ func (b *ShoplistBiz) GetAllShoplistAndItemsForUser(ctx context.Context, userID 
 
 	var results []QueryResult
 	err := b.dbPool.GetDB().WithContext(ctx).Raw(`
-		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
-		FROM (SELECT * FROM shoplist_members WHERE member_id = ?) as tbl1
-		LEFT JOIN (
-			SELECT shop_list_id, shop_list_name, item_id, item_name, brand_name, extra_info, is_bought, owner_id, nickname as owner_nickname 
+		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
+		FROM (
+			SELECT shop_list_id, owner_id, nickname as owner_nickname, shop_list_name, member_id 
 			FROM (
-				SELECT shop_list_id as shop_list_id, name as shop_list_name, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id 
-				FROM shoplist_items 
-				LEFT JOIN shoplists ON shoplist_items.shop_list_id = shoplists.id
-			) as shoplistXshoplistItems 
-			LEFT JOIN users ON users.id = shoplistXshoplistItems.owner_id
+				SELECT shoplists.id as shop_list_id, owner_id, name as shop_list_name, member_id 
+				FROM shoplist_members 
+				LEFT JOIN shoplists ON shoplist_members.shop_list_id = shoplists.id 
+				WHERE member_id = ?
+			) as tbl1 
+			LEFT JOIN users on owner_id = users.id
 		) as tbl2
-		ON tbl2.shop_list_id = tbl1.shop_list_id`, userID).Scan(&results).Error
+		LEFT JOIN shoplist_items on tbl2.shop_list_id = shoplist_items.shop_list_id`, userID).Scan(&results).Error
 
 	if err != nil {
 		return nil, NewShoplistError(ShoplistFailedToProcess, "Failed to get shoplist items.")
@@ -328,19 +228,18 @@ func (b *ShoplistBiz) GetShoplistAndItems(ctx context.Context, userID string, sh
 
 	var results []QueryResult
 	err := b.dbPool.GetDB().WithContext(ctx).Raw(`
-		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
-		FROM (SELECT * FROM shoplist_members WHERE member_id = ?) as tbl1
-		LEFT JOIN (
-			SELECT shop_list_id, shop_list_name, item_id, item_name, brand_name, extra_info, is_bought, owner_id, nickname as owner_nickname 
+		SELECT tbl2.shop_list_id as shop_list_id, shop_list_name, member_id, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id, owner_nickname 
+		FROM (
+			SELECT shop_list_id, owner_id, nickname as owner_nickname, shop_list_name, member_id 
 			FROM (
-				SELECT shop_list_id as shop_list_id, name as shop_list_name, shoplist_items.id as item_id, item_name, brand_name, extra_info, is_bought, owner_id 
-				FROM shoplist_items 
-				LEFT JOIN shoplists ON shoplist_items.shop_list_id = shoplists.id
-			) as shoplistXshoplistItems 
-			LEFT JOIN users ON users.id = shoplistXshoplistItems.owner_id
+				SELECT shoplists.id as shop_list_id, owner_id, name as shop_list_name, member_id 
+				FROM shoplist_members 
+				LEFT JOIN shoplists ON shoplist_members.shop_list_id = shoplists.id 
+				WHERE member_id = ? and shoplists.id = ?
+			) as tbl1 
+			LEFT JOIN users on owner_id = users.id
 		) as tbl2
-		ON tbl2.shop_list_id = tbl1.shop_list_id
-		WHERE tbl1.shop_list_id = ?`, userID, shoplistID).Scan(&results).Error
+		LEFT JOIN shoplist_items on tbl2.shop_list_id = shoplist_items.shop_list_id`, userID, shoplistID).Scan(&results).Error
 
 	if err != nil {
 		return nil, NewShoplistError(ShoplistFailedToProcess, "Failed to get shoplist items.")

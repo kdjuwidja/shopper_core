@@ -18,6 +18,9 @@ func GenerateShareCode(length int) string {
 	return string(b)
 }
 
+// VerifyShareCodeFromDB verifies if a share code exists in the database and is not expired
+// Returns true if the share code exists and is not expired, false otherwise
+// gormDB Context already established before calling this function
 func VerifyShareCodeFromDB(gormDB *gorm.DB, code string) bool {
 	var existingCode db.ShoplistShareCode
 	err := gormDB.Where("code = ? and expiry > ?", code, time.Now()).First(&existingCode).Error

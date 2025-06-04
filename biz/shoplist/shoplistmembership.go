@@ -1,6 +1,7 @@
 package bizshoplist
 
 import (
+	"context"
 	"time"
 
 	"gorm.io/gorm"
@@ -9,8 +10,8 @@ import (
 	"netherealmstudio.com/m/v2/db"
 )
 
-func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]bizmodels.ShoplistMember, *ShoplistError) {
-	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
+func (b *ShoplistBiz) GetShoplistMembers(ctx context.Context, userID string, shoplistID int) ([]bizmodels.ShoplistMember, *ShoplistError) {
+	shopListData, shopListErr := b.GetShoplistWithMembers(ctx, shoplistID)
 	if shopListErr != nil {
 		return nil, shopListErr
 	}
@@ -32,8 +33,8 @@ func (b *ShoplistBiz) GetShoplistMembers(userID string, shoplistID int) ([]bizmo
 	return result, nil
 }
 
-func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistError {
-	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
+func (b *ShoplistBiz) LeaveShopList(ctx context.Context, userID string, shoplistID int) *ShoplistError {
+	shopListData, shopListErr := b.GetShoplistWithMembers(ctx, shoplistID)
 	if shopListErr != nil {
 		return shopListErr
 	}
@@ -46,7 +47,7 @@ func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistErro
 	//If no other members, delete the shoplist
 	if len(shopListData.Members) == 1 {
 		// Use transaction to batch remove member and delete shoplist
-		if err := b.dbPool.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := b.dbPool.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			// First remove the member
 			if err := tx.Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&db.ShoplistMember{}).Error; err != nil {
 				return err
@@ -86,7 +87,7 @@ func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistErro
 		}
 
 		// Use transaction to batch transfer ownership and remove member
-		if err := b.dbPool.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := b.dbPool.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			// Transfer ownership
 			if err := tx.Model(&db.Shoplist{}).Where("id = ?", shoplistID).Update("owner_id", newOwnerID).Error; err != nil {
 				return err
@@ -105,15 +106,15 @@ func (b *ShoplistBiz) LeaveShopList(userID string, shoplistID int) *ShoplistErro
 	}
 
 	//If user is not owner, remove user from shoplist
-	if err := b.dbPool.GetDB().Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&db.ShoplistMember{}).Error; err != nil {
+	if err := b.dbPool.GetDB().WithContext(ctx).Where("shop_list_id = ? AND member_id = ?", shoplistID, userID).Unscoped().Delete(&db.ShoplistMember{}).Error; err != nil {
 		return NewShoplistError(ShoplistFailedToProcess, "Failed to remove member")
 	}
 
 	return nil
 }
 
-func (b *ShoplistBiz) RequestShopListShareCode(userID string, shoplistID int) (*db.ShoplistShareCode, *ShoplistError) {
-	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
+func (b *ShoplistBiz) RequestShopListShareCode(ctx context.Context, userID string, shoplistID int) (*db.ShoplistShareCode, *ShoplistError) {
+	shopListData, shopListErr := b.GetShoplistWithMembers(ctx, shoplistID)
 	if shopListErr != nil {
 		return nil, shopListErr
 	}
@@ -128,7 +129,7 @@ func (b *ShoplistBiz) RequestShopListShareCode(userID string, shoplistID int) (*
 		return nil, NewShoplistError(ShoplistNotOwner, "Only the owner can generate share codes.")
 	}
 
-	tx := b.dbPool.GetDB().Begin()
+	tx := b.dbPool.GetDB().WithContext(ctx).Begin()
 
 	// Generate a share code that is unique among all active share codes (6 characters, alphanumeric)
 	var shareCode string
@@ -163,8 +164,8 @@ func (b *ShoplistBiz) RequestShopListShareCode(userID string, shoplistID int) (*
 	return &shareCodeRecord, nil
 }
 
-func (b *ShoplistBiz) RevokeShopListShareCode(userID string, shoplistID int) *ShoplistError {
-	shopListData, shopListErr := b.GetShoplistWithMembers(shoplistID)
+func (b *ShoplistBiz) RevokeShopListShareCode(ctx context.Context, userID string, shoplistID int) *ShoplistError {
+	shopListData, shopListErr := b.GetShoplistWithMembers(ctx, shoplistID)
 	if shopListErr != nil {
 		return shopListErr
 	}
@@ -181,29 +182,29 @@ func (b *ShoplistBiz) RevokeShopListShareCode(userID string, shoplistID int) *Sh
 
 	// Find the active share code
 	var shareCode db.ShoplistShareCode
-	err := b.dbPool.GetDB().Where("shop_list_id = ? AND expiry > ?", shoplistID, time.Now()).First(&shareCode).Error
+	err := b.dbPool.GetDB().WithContext(ctx).Where("shop_list_id = ? AND expiry > ?", shoplistID, time.Now()).First(&shareCode).Error
 	if err != nil {
 		return NewShoplistError(ShoplistFailedToProcess, "Failed to find active share code")
 	}
 
 	// Update the expiry to current time to revoke the code
-	if err := b.dbPool.GetDB().Model(&shareCode).Update("expiry", time.Now()).Error; err != nil {
+	if err := b.dbPool.GetDB().WithContext(ctx).Model(&shareCode).Update("expiry", time.Now()).Error; err != nil {
 		return NewShoplistError(ShoplistFailedToProcess, "Failed to revoke share code")
 	}
 
 	return nil
 }
 
-func (b *ShoplistBiz) JoinShopList(userID string, shareCode string) *ShoplistError {
+func (b *ShoplistBiz) JoinShopList(ctx context.Context, userID string, shareCode string) *ShoplistError {
 	var dbShareCode db.ShoplistShareCode
-	err := b.dbPool.GetDB().Where("code = ? AND expiry > ?", shareCode, time.Now()).First(&dbShareCode).Error
+	err := b.dbPool.GetDB().WithContext(ctx).Where("code = ? AND expiry > ?", shareCode, time.Now()).First(&dbShareCode).Error
 	if err != nil {
 		return NewShoplistError(ShoplistFailedToProcess, "Invalid share code")
 	}
 
 	// Check if user is already a member
 	var existingMember db.ShoplistMember
-	err = b.dbPool.GetDB().Where("shop_list_id = ? AND member_id = ?", dbShareCode.ShopListID, userID).First(&existingMember).Error
+	err = b.dbPool.GetDB().WithContext(ctx).Where("shop_list_id = ? AND member_id = ?", dbShareCode.ShopListID, userID).First(&existingMember).Error
 	if err == nil {
 		return NewShoplistError(ShoplistFailedToProcess, "User is already a member of the shoplist")
 	}
@@ -214,7 +215,7 @@ func (b *ShoplistBiz) JoinShopList(userID string, shareCode string) *ShoplistErr
 		MemberID:   userID,
 	}
 
-	if err := b.dbPool.GetDB().Create(&newMember).Error; err != nil {
+	if err := b.dbPool.GetDB().WithContext(ctx).Create(&newMember).Error; err != nil {
 		return NewShoplistError(ShoplistFailedToProcess, "Failed to join shoplist")
 	}
 

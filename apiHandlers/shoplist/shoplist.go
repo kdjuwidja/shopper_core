@@ -46,7 +46,7 @@ func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 		return
 	}
 
-	err := h.shoplistBiz.CreateShoplist(userID, req.Name)
+	err := h.shoplistBiz.CreateShoplist(c, userID, req.Name)
 	if err != nil {
 		logger.Errorf("CreateShoplist: Failed to create shoplist. Error: %s", err.Error())
 		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
@@ -54,177 +54,6 @@ func (h *ShoplistHandler) CreateShoplist(c *gin.Context) {
 	}
 
 	h.responseFactory.CreateCreatedResponse(c, nil)
-}
-
-// GetAllShoplists retrieves all shoplists for the authenticated user
-// @Summary Get all shoplists
-// @Description Retrieves all shoplists where the authenticated user is a member, including the owner's information.
-// @Tags shoplist
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]interface{} "Successfully retrieved shoplists"
-// @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 500 {object} map[string]string "Failed to fetch shoplists"
-// @Failure 500 {object} map[string]string "Failed to process shoplist data"
-// @Router /shoplist [get]
-func (h *ShoplistHandler) GetAllShoplists(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		logger.Errorf("GetAllShoplists: User ID is empty.")
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
-	shoplistData, err := h.shoplistBiz.GetAllShoplists(userID)
-	if err != nil {
-		logger.Errorf("GetAllShoplists: Failed to get all shoplists. Error: %s", err.Error())
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
-	// Transform the response to only include owner nickname
-	type ShoplistResponse struct {
-		ID    int    `json:"id" gorm:"column:id"`
-		Name  string `json:"name" gorm:"column:name"`
-		Owner struct {
-			Owner_id string `json:"id" gorm:"column:owner_id"`
-			Nickname string `json:"nickname" gorm:"column:owner_nickname"`
-		} `json:"owner"`
-	}
-
-	response := make([]ShoplistResponse, 0)
-	for _, shoplist := range shoplistData {
-		response = append(response, ShoplistResponse{
-			ID:   shoplist.ID,
-			Name: shoplist.Name,
-			Owner: struct {
-				Owner_id string `json:"id" gorm:"column:owner_id"`
-				Nickname string `json:"nickname" gorm:"column:owner_nickname"`
-			}{
-				Owner_id: shoplist.OwnerID,
-				Nickname: shoplist.OwnerNickname,
-			},
-		})
-	}
-
-	h.responseFactory.CreateOKResponse(c, map[string]interface{}{"shoplists": response})
-}
-
-// GetShoplist retrieves a specific shoplist and its items
-// @Summary Get a specific shoplist
-// @Description Retrieves a shoplist by its ID along with its items and members
-// @Tags shoplist
-// @Accept json
-// @Produce json
-// @Param id path int true "Shoplist ID"
-// @Success 200 {object} ResponseModel
-// @Failure 400 {object} map[string]string "Invalid shoplist ID"
-// @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 404 {object} map[string]string "Not found"
-// @Failure 500 {object} map[string]string "Failed to fetch shoplist"
-// @Failure 500 {object} map[string]string "Failed to process shoplist data"
-// @Router /shoplist/{id} [get]
-func (h *ShoplistHandler) GetShoplist(c *gin.Context) {
-	// Get shoplist ID from URL parameters
-	shoplistID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		h.responseFactory.CreateErrorResponsef(c, apiHandlers.ErrMissingRequiredParam, "id")
-		return
-	}
-
-	userID := c.GetString("userID")
-	if userID == "" {
-		logger.Errorf("GetShoplist: User ID is empty.")
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
-	shoplistData, shoplistItems, shoplistMembers, shoplistErr := h.shoplistBiz.GetShoplist(userID, shoplistID)
-	if shoplistErr != nil {
-		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
-			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
-		} else {
-			logger.Errorf("GetShoplist: Failed to get shoplist. Error: %s", shoplistErr.Error())
-			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		}
-		return
-	}
-
-	// massage response data into expected format
-	if shoplistData == nil {
-		logger.Errorf("GetShoplist: shoplistData == nil, shoplistId: %d", shoplistID)
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
-	type ResponseModel struct {
-		ID    int    `json:"id"`
-		Name  string `json:"name"`
-		Owner struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		} `json:"owner"`
-		Members []struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		} `json:"members"`
-		Items []struct {
-			ID        int    `json:"id"`
-			ItemName  string `json:"item_name"`
-			BrandName string `json:"brand_name"`
-			ExtraInfo string `json:"extra_info"`
-			IsBought  bool   `json:"is_bought"`
-		} `json:"items"`
-	}
-
-	responseMembers := make([]struct {
-		ID       string "json:\"id\""
-		Nickname string "json:\"nickname\""
-	}, 0)
-	for _, member := range shoplistMembers {
-		responseMembers = append(responseMembers, struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		}{ID: member.ID, Nickname: member.Nickname})
-	}
-
-	responseItems := make([]struct {
-		ID        int    `json:"id"`
-		ItemName  string `json:"item_name"`
-		BrandName string `json:"brand_name"`
-		ExtraInfo string `json:"extra_info"`
-		IsBought  bool   `json:"is_bought"`
-	}, 0)
-	for _, item := range shoplistItems {
-		responseItems = append(responseItems, struct {
-			ID        int    `json:"id"`
-			ItemName  string `json:"item_name"`
-			BrandName string `json:"brand_name"`
-			ExtraInfo string `json:"extra_info"`
-			IsBought  bool   `json:"is_bought"`
-		}{
-			ID:        item.ID,
-			ItemName:  item.ItemName,
-			BrandName: item.BrandName,
-			ExtraInfo: item.ExtraInfo,
-			IsBought:  item.IsBought,
-		})
-	}
-
-	response := ResponseModel{
-		ID:   shoplistData.ID,
-		Name: shoplistData.Name,
-		Owner: struct {
-			ID       string `json:"id"`
-			Nickname string `json:"nickname"`
-		}{
-			ID:       shoplistData.OwnerID,
-			Nickname: shoplistData.OwnerNickname,
-		},
-		Members: responseMembers,
-		Items:   responseItems,
-	}
-	h.responseFactory.CreateOKResponse(c, response)
 }
 
 // UpdateShoplist updates a shoplist's name
@@ -267,7 +96,7 @@ func (h *ShoplistHandler) UpdateShoplist(c *gin.Context) {
 		return
 	}
 
-	shoplistErr := h.shoplistBiz.UpdateShoplist(userID, shoplistID, requestBody.Name)
+	shoplistErr := h.shoplistBiz.UpdateShoplist(c, userID, shoplistID, requestBody.Name)
 	if shoplistErr != nil {
 		if shoplistErr.ErrCode == bizshoplist.ShoplistNotFound {
 			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrShoplistNotFound)
@@ -392,13 +221,6 @@ func (h *ShoplistHandler) GetShoplistAndItemsForUserByShoplistID(c *gin.Context)
 		return
 	}
 
-	flyers, matchErr := h.matchBiz.MatchShoplistItemsWithFlyer(c.Request.Context(), shoplist.Items)
-	if matchErr != nil {
-		logger.Errorf("GetShoplistAndItemsForUserByShoplistID: Failed to match shoplist items with flyers. Error: %s", matchErr.Error())
-		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
-		return
-	}
-
 	// Transform the shoplist into the response format
 	shoplistResp := ShoplistResponse{
 		ID:   shoplist.ID,
@@ -410,36 +232,45 @@ func (h *ShoplistHandler) GetShoplistAndItemsForUserByShoplistID(c *gin.Context)
 		Items: make([]ItemResponse, 0),
 	}
 
-	// Add items for this shoplist
-	for _, item := range shoplist.Items {
-		flyerResp := make([]FlyerResponse, 0)
-
-		flyersForItem, exists := flyers[item.ID]
-		if exists {
-			for _, flyer := range flyersForItem {
-				flyerResp = append(flyerResp, FlyerResponse{
-					Store:         flyer.Store,
-					Brand:         flyer.Brand,
-					StartDate:     flyer.StartDateTime,
-					EndDate:       flyer.EndDateTime,
-					ProductName:   flyer.ProductName,
-					Description:   flyer.Description,
-					OriginalPrice: flyer.OriginalPrice,
-					PrePriceText:  flyer.PrePriceText,
-					PriceText:     flyer.PriceText,
-					PostPriceText: flyer.PostPriceText,
-				})
-			}
+	if len(shoplist.Items) > 0 {
+		flyers, matchErr := h.matchBiz.MatchShoplistItemsWithFlyer(c.Request.Context(), shoplist.Items)
+		if matchErr != nil {
+			logger.Errorf("GetShoplistAndItemsForUserByShoplistID: Failed to match shoplist items with flyers. Error: %s", matchErr.Error())
+			h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
+			return
 		}
 
-		shoplistResp.Items = append(shoplistResp.Items, ItemResponse{
-			ID:        item.ID,
-			Name:      item.ItemName,
-			BrandName: item.BrandName,
-			ExtraInfo: item.ExtraInfo,
-			IsBought:  item.IsBought,
-			Flyer:     flyerResp,
-		})
+		// Add items for this shoplist
+		for _, item := range shoplist.Items {
+			flyerResp := make([]FlyerResponse, 0)
+
+			flyersForItem, exists := flyers[item.ID]
+			if exists {
+				for _, flyer := range flyersForItem {
+					flyerResp = append(flyerResp, FlyerResponse{
+						Store:         flyer.Store,
+						Brand:         flyer.Brand,
+						StartDate:     flyer.StartDateTime,
+						EndDate:       flyer.EndDateTime,
+						ProductName:   flyer.ProductName,
+						Description:   flyer.Description,
+						OriginalPrice: flyer.OriginalPrice,
+						PrePriceText:  flyer.PrePriceText,
+						PriceText:     flyer.PriceText,
+						PostPriceText: flyer.PostPriceText,
+					})
+				}
+			}
+
+			shoplistResp.Items = append(shoplistResp.Items, ItemResponse{
+				ID:        item.ID,
+				Name:      item.ItemName,
+				BrandName: item.BrandName,
+				ExtraInfo: item.ExtraInfo,
+				IsBought:  item.IsBought,
+				Flyer:     flyerResp,
+			})
+		}
 	}
 
 	h.responseFactory.CreateOKResponse(c, shoplistResp)

@@ -40,7 +40,7 @@ func (h *ShoplistHandler) GetShoplistMembers(c *gin.Context) {
 		return
 	}
 
-	members, shoplistErr := h.shoplistBiz.GetShoplistMembers(userID, shoplistID)
+	members, shoplistErr := h.shoplistBiz.GetShoplistMembers(c, userID, shoplistID)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -97,7 +97,7 @@ func (h *ShoplistHandler) LeaveShopList(c *gin.Context) {
 		return
 	}
 
-	shoplistErr := h.shoplistBiz.LeaveShopList(userID, shoplistID)
+	shoplistErr := h.shoplistBiz.LeaveShopList(c, userID, shoplistID)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -147,7 +147,7 @@ func (h *ShoplistHandler) RequestShopListShareCode(c *gin.Context) {
 		return
 	}
 
-	shareCode, shoplistErr := h.shoplistBiz.RequestShopListShareCode(userID, shoplistID)
+	shareCode, shoplistErr := h.shoplistBiz.RequestShopListShareCode(c, userID, shoplistID)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -203,7 +203,7 @@ func (h *ShoplistHandler) RevokeShopListShareCode(c *gin.Context) {
 		return
 	}
 
-	shoplistErr := h.shoplistBiz.RevokeShopListShareCode(userID, shoplistID)
+	shoplistErr := h.shoplistBiz.RevokeShopListShareCode(c, userID, shoplistID)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -257,7 +257,7 @@ func (h *ShoplistHandler) JoinShopList(c *gin.Context) {
 		return
 	}
 
-	shoplistErr := h.shoplistBiz.JoinShopList(userID, requestBody.ShareCode)
+	shoplistErr := h.shoplistBiz.JoinShopList(c, userID, requestBody.ShareCode)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistFailedToProcess:

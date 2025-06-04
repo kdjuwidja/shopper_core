@@ -29,7 +29,7 @@ func (h *UserProfileHandler) GetUserProfile(c *gin.Context) {
 	userIDInterface, _ := c.Get("userID")
 	userID := userIDInterface.(string)
 
-	user, err := h.userBiz.GetUserProfile(userID)
+	user, err := h.userBiz.GetUserProfile(c, userID)
 	if err != nil {
 		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrUserProfileNotFound)
 		return
@@ -80,7 +80,7 @@ func (h *UserProfileHandler) CreateOrUpdateUserProfile(c *gin.Context) {
 		PostalCode: postalCode,
 	}
 
-	err := h.userBiz.CreateOrUpdateUserProfile(userID, &user)
+	err := h.userBiz.CreateOrUpdateUserProfile(c, userID, &user)
 	if err != nil {
 		h.responseFactory.CreateErrorResponse(c, apiHandlers.ErrInternalServerError)
 		return

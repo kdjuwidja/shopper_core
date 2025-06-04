@@ -47,6 +47,11 @@ func setupSearchTestData(t *testing.T, dbPool *db.MySQLConnectionPool) {
 			OwnerID: users[1].ID,
 			Name:    "Test Shoplist 3",
 		},
+		{
+			ID:      4,
+			OwnerID: users[0].ID,
+			Name:    "Empty Shoplist",
+		},
 	}
 	for _, shoplist := range shoplists {
 		err := dbPool.GetDB().Create(&shoplist).Error
@@ -74,6 +79,11 @@ func setupSearchTestData(t *testing.T, dbPool *db.MySQLConnectionPool) {
 			ID:         4,
 			ShopListID: shoplists[2].ID,
 			MemberID:   users[0].ID, // First user is member of second user's third shoplist
+		},
+		{
+			ID:         5,
+			ShopListID: shoplists[3].ID,
+			MemberID:   users[0].ID, // First user is member of their own empty shoplist
 		},
 	}
 	for _, member := range members {
@@ -185,6 +195,13 @@ func TestGetShoplistItemsByUserId(t *testing.T) {
 						{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
 						{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
 					},
+				},
+				{
+					ID:            4,
+					Name:          "Empty Shoplist",
+					OwnerID:       "test_user",
+					OwnerNickname: "Test User",
+					Items:         []bizmodels.ShoplistItem{},
 				},
 			},
 			expectedError: nil,
@@ -310,7 +327,7 @@ func TestGetShoplistWithMembers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data, err := biz.GetShoplistWithMembers(tt.shoplistID)
+			data, err := biz.GetShoplistWithMembers(context.Background(), tt.shoplistID)
 			if tt.expectedError != nil {
 				assert.Equal(t, tt.expectedError.ErrCode, err.ErrCode)
 				assert.Nil(t, data)
@@ -371,6 +388,19 @@ func TestGetShoplistAndItems(t *testing.T) {
 					{ID: 6, ShopListID: 3, ItemName: "Shared Item 1", BrandName: "Shared Brand 1", ExtraInfo: "Shared Info 1", IsBought: false},
 					{ID: 7, ShopListID: 3, ItemName: "Shared Item 2", BrandName: "Shared Brand 2", ExtraInfo: "Shared Info 2", IsBought: true},
 				},
+			},
+			expectedError: nil,
+		},
+		{
+			name:       "successful get shoplist with no items",
+			userID:     "test_user",
+			shoplistID: 4,
+			expectedShoplist: &bizmodels.Shoplist{
+				ID:            4,
+				Name:          "Empty Shoplist",
+				OwnerID:       "test_user",
+				OwnerNickname: "Test User",
+				Items:         []bizmodels.ShoplistItem{},
 			},
 			expectedError: nil,
 		},

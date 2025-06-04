@@ -56,7 +56,7 @@ func (h *ShoplistHandler) AddItemToShopList(c *gin.Context) {
 		return
 	}
 
-	newItem, shoplistErr := h.shoplistBiz.AddItemToShopList(userID, shoplistID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.Thumbnail)
+	newItem, shoplistErr := h.shoplistBiz.AddItemToShopList(c, userID, shoplistID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.Thumbnail)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -123,7 +123,7 @@ func (h *ShoplistHandler) RemoveItemFromShopList(c *gin.Context) {
 		return
 	}
 
-	shoplistErr := h.shoplistBiz.RemoveItemFromShopList(userID, shoplistID, itemID)
+	shoplistErr := h.shoplistBiz.RemoveItemFromShopList(c, userID, shoplistID, itemID)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
@@ -210,7 +210,7 @@ func (h *ShoplistHandler) UpdateShoplistItem(c *gin.Context) {
 		return
 	}
 
-	updatedItem, shoplistErr := h.shoplistBiz.UpdateShoplistItem(userID, shoplistID, itemID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.IsBought)
+	updatedItem, shoplistErr := h.shoplistBiz.UpdateShoplistItem(c, userID, shoplistID, itemID, requestBody.ItemName, requestBody.BrandName, requestBody.ExtraInfo, requestBody.IsBought)
 	if shoplistErr != nil {
 		switch shoplistErr.ErrCode {
 		case bizshoplist.ShoplistNotFound:
