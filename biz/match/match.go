@@ -59,13 +59,13 @@ func (b *MatchShoplistItemsWithFlyerBiz) MatchShoplistItemsWithFlyer(ctx context
 	esMultiQuery := elasticsearch.CreateMQuery()
 
 	for _, shoplistItem := range shoplistItems {
-		esQuery := elasticsearch.CreateESQueryStr("flyers", newMatchQueryStr(shoplistItem.BrandName, now, shoplistItem.ItemName))
+		esQuery := elasticsearch.CreateESQueryStr("products", newMatchQueryStr(shoplistItem.BrandName, now, shoplistItem.ItemName))
 		esMultiQuery.AddQuery(esQuery)
 	}
 
-	esMultiQuery.PrintQuery("flyers")
+	esMultiQuery.PrintQuery("products")
 
-	results, err := b.esc.SearchDocumentsWithMQuery(ctx, "flyers", esMultiQuery)
+	results, err := b.esc.SearchDocumentsWithMQuery(ctx, "products", esMultiQuery)
 	if err != nil {
 		return nil, err
 	}
